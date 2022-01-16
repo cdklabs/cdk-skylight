@@ -39,7 +39,7 @@ export interface WindowsNodeProps {
 	 *
 	 * @default - 'm5.2xlarge'.
 	 */
-	InstanceType?: string;
+	instanceType?: string;
 	/**
 	 * Choose if to launch the instance in Private or in Public subnet
 	 * Private = Subnet that routes to the internet, but not vice versa.
@@ -55,7 +55,7 @@ export interface WindowsNodeProps {
 	 * The name of the AMI to search in SSM (ec2.LookupNodeImage) supports Regex
 	 *  @default - 'Windows_Server-2022-English-Full'
 	 */
-	AMIName?: string;
+	amiName?: string;
 	/**
 	 * UserData string
 	 *  @default - 'No'
@@ -67,8 +67,8 @@ export interface WindowsNodeProps {
  * The WindowsNode class.
  */
 export class WindowsNode extends Construct {
-	readonly Node: ec2.Instance;
-	readonly Node_role: iam.Role;
+	readonly instance: ec2.Instance;
+	readonly nodeRole: iam.Role;
 
 	constructor(scope: Construct, id: string, props: WindowsNodeProps) {
 		super(scope, id);
@@ -81,12 +81,12 @@ export class WindowsNode extends Construct {
 		props.usePrivateSubnet = props.usePrivateSubnet ?? false;
 		props.userData = props.userData ?? "";
 
-		const NodeImage = new ec2.LookupMachineImage({
-			name: props.AMIName ?? "*Windows_Server-2022-English-Full*",
+		const nodeImage = new ec2.LookupMachineImage({
+			name: props.amiName ?? "*Windows_Server-2022-English-Full*",
 			windows: true,
 		});
 
-		this.Node_role = new iam.Role(this, id + "-instance-role", {
+		this.nodeRole = new iam.Role(this, id + "-instance-role", {
 			assumedBy: new iam.ServicePrincipal("ec2.amazonaws.com"),
 			managedPolicies: props.iamManagedPoliciesList,
 		});
@@ -95,11 +95,11 @@ export class WindowsNode extends Construct {
 			vpc: props.vpc,
 		});
 
-		this.Node = new ec2.Instance(this, id + "-ec2instance", {
-			instanceType: new ec2.InstanceType(props.InstanceType ?? "m5.large"),
-			machineImage: NodeImage,
+		this.instance = new ec2.Instance(this, id + "-ec2instance", {
+			instanceType: new ec2.InstanceType(props.instanceType ?? "m5.large"),
+			machineImage: nodeImage,
 			vpc: props.vpc,
-			role: this.Node_role,
+			role: this.nodeRole,
 			securityGroup: securityGroup,
 			vpcSubnets: props.vpc.selectSubnets({
 				subnetType: props.usePrivateSubnet
@@ -110,10 +110,10 @@ export class WindowsNode extends Construct {
 		});
 
 		if (props.userData != "") {
-			this.Node.addUserData(props.userData);
+			this.instance.addUserData(props.userData);
 		}
 
-		this.Node.addUserData(`
+		this.instance.addUserData(`
 		#domain join with secret from secret manager
 		[string]$SecretAD  = "${props.secret.secretName}"
 		$SecretObj = Get-SECSecretValue -SecretId $SecretAD
@@ -126,7 +126,7 @@ export class WindowsNode extends Construct {
     `);
 
 		new CfnOutput(this, id + "-stack-output", {
-			value: `InstanceId: ${this.Node.instanceId}; dnsName: ${this.Node.instancePublicDnsName}`,
+			value: `InstanceId: ${this.instance.instanceId}; dnsName: ${this.instance.instancePublicDnsName}`,
 		});
 	}
 
@@ -140,7 +140,7 @@ export class WindowsNode extends Construct {
 			parameters: {
 				commands: psCommands,
 			},
-			targets: [{ key: "InstanceIds", values: [this.Node.instanceId] }],
+			targets: [{ key: "InstanceIds", values: [this.instance.instanceId] }],
 		});
 	}
 	/**
@@ -148,7 +148,7 @@ export class WindowsNode extends Construct {
 	 * i.e: openRDP("1.1.1.1/32")
 	 */
 	openRDP(ipaddress: string) {
-		this.Node.connections.allowFrom(
+		this.instance.connections.allowFrom(
 			ec2.Peer.ipv4(ipaddress),
 			ec2.Port.tcp(3389),
 			"Allow RDP"
@@ -185,7 +185,7 @@ export class WindowsNode extends Construct {
 			parameters: {
 				commands: commands,
 			},
-			targets: [{ key: "InstanceIds", values: [this.Node.instanceId] }],
+			targets: [{ key: "InstanceIds", values: [this.instance.instanceId] }],
 		});
 	}
 }

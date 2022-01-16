@@ -15,7 +15,7 @@ test("mad-r53-test", () => {
 		secret: mad.secret,
 	});
 	expect(windowsNode).toHaveProperty(
-		"Node.instance.cfnResourceType",
+		"instance.instance.cfnResourceType",
 		"AWS::EC2::Instance"
 	);
 });
