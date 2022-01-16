@@ -6,6 +6,8 @@ const project = new awscdk.AwsCdkConstructLibrary({
 	defaultReleaseBranch: "main",
 	name: "cdk-skylight",
 	repositoryUrl: "https://github.com/cdklabs/cdk-skylight.git",
+	peerDeps: ["constructs", "aws-cdk-lib"],
+	releaseToNpm: true,
 	// deps: [],                /* Runtime dependencies of this module. */
 	// description: undefined,  /* The description is just a string that helps people understand the purpose of the package. */
 	// devDeps: [],             /* Build dependencies for this module. */
