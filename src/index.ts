@@ -1,5 +1,3 @@
-export class Hello {
-  public sayHello() {
-    return 'hello, world!';
-  }
-}
+export { WindowsNode } from "./windows-node";
+export { WindowsFSxMad } from "./windows-fsx-mad-r53";
+export { MadR53 } from "./mad-r53";
