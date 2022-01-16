@@ -14,12 +14,12 @@
 // Imports
 import { Construct } from "constructs";
 import { aws_fsx as fsx, aws_ec2 as ec2 } from "aws-cdk-lib";
-import { MadR53, MadR53Props } from "./mad-r53";
+import { MadR53, IMadR53Props } from "./mad-r53";
 
 /**
  * The properties for the WindowsFSxMad class.
  */
-export interface WindowsFSxMadProps extends MadR53Props {
+export interface IWindowsFSxMadProps extends IMadR53Props {
 	/**
 	 * The Filesystem size in GB
 	 *
@@ -48,7 +48,7 @@ export interface WindowsFSxMadProps extends MadR53Props {
 
 export class WindowsFSxMad extends MadR53 {
 	readonly fsx: fsx.CfnFileSystem;
-	constructor(scope: Construct, id: string, props: WindowsFSxMadProps) {
+	constructor(scope: Construct, id: string, props: IWindowsFSxMadProps) {
 		super(scope, id, props);
 		props.fsxInPrivateSubnet = props.fsxInPrivateSubnet ?? true;
 		props.fsxMbps = props.fsxMbps ?? 128;

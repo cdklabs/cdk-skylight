@@ -23,7 +23,7 @@ import {
 /**
  * The properties for the WindowsNode class.
  */
-export interface WindowsNodeProps {
+export interface IWindowsNodeProps {
 	/**
 	 * The VPC to use <required>
 	 * @default - 'No default'.
@@ -70,7 +70,7 @@ export class WindowsNode extends Construct {
 	readonly instance: ec2.Instance;
 	readonly nodeRole: iam.Role;
 
-	constructor(scope: Construct, id: string, props: WindowsNodeProps) {
+	constructor(scope: Construct, id: string, props: IWindowsNodeProps) {
 		super(scope, id);
 		props.iamManagedPoliciesList = props.iamManagedPoliciesList ?? [
 			iam.ManagedPolicy.fromAwsManagedPolicyName(
