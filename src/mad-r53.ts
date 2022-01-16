@@ -60,7 +60,7 @@ export class MadR53 extends Construct {
 	readonly ad: mad.CfnMicrosoftAD;
 	readonly vpc: ec2.IVpc;
 
-	constructor(scope: Construct, id = "madStack", props: MadR53Props) {
+	constructor(scope: Construct, id: string, props: MadR53Props) {
 		super(scope, id);
 		props.domainName = props.domainName ?? "domain.aws";
 		props.edition = props.edition ?? "Standard";

@@ -48,11 +48,7 @@ export interface WindowsFSxMadProps extends MadR53Props {
 
 export class WindowsFSxMad extends MadR53 {
 	readonly fsx: fsx.CfnFileSystem;
-	constructor(
-		scope: Construct,
-		id: string = "fsxMadStack",
-		props: WindowsFSxMadProps
-	) {
+	constructor(scope: Construct, id: string, props: WindowsFSxMadProps) {
 		super(scope, id, props);
 		props.fsxInPrivateSubnet = props.fsxInPrivateSubnet ?? true;
 		props.fsxMbps = props.fsxMbps ?? 128;

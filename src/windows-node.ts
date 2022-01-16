@@ -70,11 +70,7 @@ export class WindowsNode extends Construct {
 	readonly Node: ec2.Instance;
 	readonly Node_role: iam.Role;
 
-	constructor(
-		scope: Construct,
-		id = "windows-node-1",
-		props: WindowsNodeProps
-	) {
+	constructor(scope: Construct, id: string, props: WindowsNodeProps) {
 		super(scope, id);
 		props.iamManagedPoliciesList = props.iamManagedPoliciesList ?? [
 			iam.ManagedPolicy.fromAwsManagedPolicyName(
