@@ -21,9 +21,9 @@ import {
 } from "aws-cdk-lib";
 
 /**
- * The properties for the WindowsNode class.
+ * The properties for the RuntimeNode class.
  */
-export interface IWindowsNodeProps {
+export interface IRuntimeNodeProps {
 	/**
 	 * The VPC to use <required>
 	 * @default - 'No default'.
@@ -64,13 +64,13 @@ export interface IWindowsNodeProps {
 }
 
 /**
- * The WindowsNode class.
+ * The RuntimeNode class.
  */
-export class WindowsNode extends Construct {
+export class RuntimeNode extends Construct {
 	readonly instance: ec2.Instance;
 	readonly nodeRole: iam.Role;
 
-	constructor(scope: Construct, id: string, props: IWindowsNodeProps) {
+	constructor(scope: Construct, id: string, props: IRuntimeNodeProps) {
 		super(scope, id);
 		props.iamManagedPoliciesList = props.iamManagedPoliciesList ?? [
 			iam.ManagedPolicy.fromAwsManagedPolicyName(

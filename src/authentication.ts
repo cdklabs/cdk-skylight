@@ -22,9 +22,9 @@ import {
 	Fn,
 } from "aws-cdk-lib";
 /**
- * The properties for the MadR53 class.
+ * The properties for the Authentication class.
  */
-export interface IMadR53Props {
+export interface IAuthenticationProps {
 	/**
 	 * The domain name for the Active Directory Domain.
 	 *
@@ -46,27 +46,19 @@ export interface IMadR53Props {
 	secret?: secretsmanager.ISecret;
 	/**
 	 * The VPC to use, must have private subnets.
-	 * @default - 'Randomly generated'.
 	 */
-	vpc?: ec2.IVpc;
-	/**
-	 * Define the maximum number of AZs to use in this region.
-	 * @default - '2'.
-	 */
-	maxAzs?: number;
+	vpc: ec2.IVpc;
 }
-export class MadR53 extends Construct {
+export class Authentication extends Construct {
 	readonly secret: secretsmanager.ISecret;
 	readonly ad: mad.CfnMicrosoftAD;
 	readonly vpc: ec2.IVpc;
 
-	constructor(scope: Construct, id: string, props: IMadR53Props) {
+	constructor(scope: Construct, id: string, props: IAuthenticationProps) {
 		super(scope, id);
 		props.domainName = props.domainName ?? "domain.aws";
 		props.edition = props.edition ?? "Standard";
-		props.maxAzs = props.maxAzs ?? 2;
-		this.vpc =
-			props.vpc ?? new ec2.Vpc(this, id + "-vpc", { maxAzs: props.maxAzs });
+		this.vpc = props.vpc;
 
 		this.secret =
 			props.secret ??

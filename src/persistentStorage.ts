@@ -13,13 +13,16 @@
 
 // Imports
 import { Construct } from "constructs";
-import { aws_fsx as fsx, aws_ec2 as ec2 } from "aws-cdk-lib";
-import { MadR53, IMadR53Props } from "./mad-r53";
+import {
+	aws_fsx as fsx,
+	aws_ec2 as ec2,
+	aws_directoryservice,
+} from "aws-cdk-lib";
 
 /**
- * The properties for the WindowsFSxMad class.
+ * The properties for the PersistentStorage class.
  */
-export interface IWindowsFSxMadProps extends IMadR53Props {
+export interface IPersistentStorageProps {
 	/**
 	 * The Filesystem size in GB
 	 *
@@ -44,16 +47,29 @@ export interface IWindowsFSxMadProps extends IMadR53Props {
 	 * @default - true.
 	 */
 	fsxInPrivateSubnet?: boolean;
+	/**
+	 * The VPC to use, must have private subnets.
+	 */
+	vpc: ec2.IVpc;
+
+	/**
+	 * The AD to use, must be in the same VPC.
+	 */
+	ad: aws_directoryservice.CfnMicrosoftAD;
 }
 
-export class WindowsFSxMad extends MadR53 {
+export class PersistentStorage extends Construct {
 	readonly fsx: fsx.CfnFileSystem;
-	constructor(scope: Construct, id: string, props: IWindowsFSxMadProps) {
-		super(scope, id, props);
+	readonly vpc: ec2.IVpc;
+	readonly ad: aws_directoryservice.CfnMicrosoftAD;
+	constructor(scope: Construct, id: string, props: IPersistentStorageProps) {
+		super(scope, id);
 		props.fsxInPrivateSubnet = props.fsxInPrivateSubnet ?? true;
 		props.fsxMbps = props.fsxMbps ?? 128;
 		props.fsxSize = props.fsxSize ?? 200;
 		props.multiAZ = props.multiAZ ?? true;
+		this.vpc = props.vpc;
+		this.ad = props.ad;
 
 		const subnets = this.vpc.selectSubnets({
 			subnetType: props.fsxInPrivateSubnet

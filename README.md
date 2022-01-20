@@ -16,7 +16,7 @@ npm install cdk-skylight
 ```
 
 ```typescript
-const vpc_infrastructure = new WindowsFSxMad(this, 'infraStack', {
+const vpc_infrastructure = new PersistentStorage(this, 'infraStack', {
     fsxSize: 200,
     fsxMbps: 128,
     multiAZ: true,
@@ -33,7 +33,7 @@ With CDK Skylight you can build complex integration.
 
 # CDK Skylight Constructs 
 
-### **MadR53**
+### **Authentication**
 
 This construct creates Amazon VPC, Amazon Managed AD, Secret for the domain Admin stored in Secrets Manager and Route 53 forward rule for the domain.
 
@@ -42,17 +42,17 @@ The construct provides way to customize configuration and smart defaults for the
 Example:
 
 ```typescript
-const vpc_infrasracture = new madR53(this, "Main-Infra", { domain_name: "cdkskylight.aws"});
+const vpc_infrasracture = new Authentication(this, "Main-Infra", { domain_name: "cdkskylight.aws"});
 ```
 
-### **WindowsFSxMad**
+### **PersistentStorage**
 
 This construct extends the VpcMad to allow FSx integration.
 
 Example:
 
 ```typescript
-const vpc_infrastructure = new WindowsFSxMad(this, "Main-Infra", {
+const vpc_infrastructure = new PersistentStorage(this, "Main-Infra", {
 	FSxMBps: 128, 
 	FSxSize: 100, 
 	MultiAZ: false, 
@@ -63,7 +63,7 @@ const vpc_infrastructure = new WindowsFSxMad(this, "Main-Infra", {
 
 ### **WindowsEKSCluster** 
 
-This stack take the WindowsFSxMad stack as input and creates the EKS cluster with permissions to operate EKS clusters.
+This stack take the PersistentStorage stack as input and creates the EKS cluster with permissions to operate EKS clusters.
 
 Example:
 
@@ -83,14 +83,14 @@ const eks_nodes = new WindowsEKSNodes(this, 'EKS-Nodes',
 	eks_infra);
 ```
 
-### **WindowsNode**
+### **RuntimeNode**
 
 The stack creates Windows Server with the latest AMI and joined the machine to the domain. It is possible to send Powershell commands or connect and work from the machine. 
 
 Example:
 
 ```typescript
-const Worker = new WindowsNode(this, 'WindowsWorker',{
+const Worker = new RuntimeNode(this, 'WindowsWorker',{
 	vpc: vpc_infrastructure.vpc, 
 	madObject: vpc_infrastructure.ad);
 ```

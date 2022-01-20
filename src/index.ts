@@ -1,3 +1,7 @@
-export { WindowsNode, IWindowsNodeProps } from "./windows-node";
-export { WindowsFSxMad, IWindowsFSxMadProps } from "./windows-fsx-mad-r53";
-export { MadR53, IMadR53Props } from "./mad-r53";
+export { Compute } from "./compute";
+export { RuntimeNode, IRuntimeNodeProps } from "./runtimeNode";
+export {
+	PersistentStorage,
+	IPersistentStorageProps,
+} from "./persistentStorage";
+export { Authentication, IAuthenticationProps } from "./authentication";
