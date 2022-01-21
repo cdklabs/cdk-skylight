@@ -18,6 +18,7 @@ import {
 	aws_ec2 as ec2,
 	aws_route53resolver as r53resolver,
 	aws_secretsmanager as secretsmanager,
+	aws_ssm,
 	CfnOutput,
 	Fn,
 } from "aws-cdk-lib";
@@ -54,12 +55,18 @@ export class Authentication extends Construct {
 	readonly ad: mad.CfnMicrosoftAD;
 	readonly vpc: ec2.IVpc;
 
-	constructor(scope: Construct, id: string, props: IAuthenticationProps) {
+	constructor(
+		scope: Construct,
+		id: string,
+		namespace: string,
+		props: IAuthenticationProps
+	) {
 		super(scope, id);
 		props.domainName = props.domainName ?? "domain.aws";
 		props.edition = props.edition ?? "Standard";
-		this.vpc = props.vpc;
 
+		this.vpc = props.vpc;
+		const secretName = props.domainName + "-secret";
 		this.secret =
 			props.secret ??
 			new secretsmanager.Secret(this, `${id}-${props.domainName}-secret`, {
@@ -71,8 +78,13 @@ export class Authentication extends Construct {
 					generateStringKey: "Password",
 					excludePunctuation: true,
 				},
-				secretName: props.domainName + "-secret",
+				secretName: secretName,
 			});
+
+		new aws_ssm.StringParameter(this, "secretName", {
+			parameterName: `/${namespace}/secretName`,
+			stringValue: secretName,
+		});
 
 		const subnets = this.vpc.selectSubnets({
 			subnetType: ec2.SubnetType.PRIVATE_WITH_NAT,

@@ -18,17 +18,13 @@ import {
 	aws_ssm as ssm,
 	CfnOutput,
 	aws_secretsmanager,
+	aws_ssm,
 } from "aws-cdk-lib";
 
 /**
  * The properties for the RuntimeNode class.
  */
 export interface IRuntimeNodeProps {
-	/**
-	 * The VPC to use <required>
-	 * @default - 'No default'.
-	 */
-	vpc: ec2.IVpc;
 	/**
 	 * IAM Instance role permissions
 	 * @default - 'AmazonSSMManagedInstanceCore, AmazonSSMDirectoryServiceAccess'.
@@ -48,10 +44,6 @@ export interface IRuntimeNodeProps {
 	 */
 	usePrivateSubnet?: boolean;
 	/**
-	 * Secret Stored in Secrets Manager to join the domain (Domain Admin) with the domain name
-	 */
-	secret: aws_secretsmanager.ISecret;
-	/**
 	 * The name of the AMI to search in SSM (ec2.LookupNodeImage) supports Regex
 	 *  @default - 'Windows_Server-2022-English-Full'
 	 */
@@ -61,6 +53,10 @@ export interface IRuntimeNodeProps {
 	 *  @default - 'No'
 	 */
 	userData?: string;
+	/**
+	 * The VPC to use, must have private subnets.
+	 */
+	vpc: ec2.IVpc;
 }
 
 /**
@@ -69,8 +65,14 @@ export interface IRuntimeNodeProps {
 export class RuntimeNode extends Construct {
 	readonly instance: ec2.Instance;
 	readonly nodeRole: iam.Role;
+	readonly vpc: ec2.IVpc;
 
-	constructor(scope: Construct, id: string, props: IRuntimeNodeProps) {
+	constructor(
+		scope: Construct,
+		id: string,
+		namespace: string,
+		props: IRuntimeNodeProps
+	) {
 		super(scope, id);
 		props.iamManagedPoliciesList = props.iamManagedPoliciesList ?? [
 			iam.ManagedPolicy.fromAwsManagedPolicyName(
@@ -80,6 +82,18 @@ export class RuntimeNode extends Construct {
 
 		props.usePrivateSubnet = props.usePrivateSubnet ?? false;
 		props.userData = props.userData ?? "";
+		this.vpc = props.vpc;
+
+		const secretName = aws_ssm.StringParameter.valueForStringParameter(
+			this,
+			`${namespace}/authentication`
+		);
+
+		const secret = aws_secretsmanager.Secret.fromSecretNameV2(
+			this,
+			"secret",
+			secretName
+		);
 
 		const nodeImage = new ec2.LookupMachineImage({
 			name: props.amiName ?? "*Windows_Server-2022-English-Full*",
@@ -92,16 +106,16 @@ export class RuntimeNode extends Construct {
 		});
 
 		const securityGroup = new ec2.SecurityGroup(this, id + "-securityGroup", {
-			vpc: props.vpc,
+			vpc: this.vpc,
 		});
 
 		this.instance = new ec2.Instance(this, id + "-ec2instance", {
 			instanceType: new ec2.InstanceType(props.instanceType ?? "m5.large"),
 			machineImage: nodeImage,
-			vpc: props.vpc,
+			vpc: this.vpc,
 			role: this.nodeRole,
 			securityGroup: securityGroup,
-			vpcSubnets: props.vpc.selectSubnets({
+			vpcSubnets: this.vpc.selectSubnets({
 				subnetType: props.usePrivateSubnet
 					? ec2.SubnetType.PRIVATE_WITH_NAT
 					: ec2.SubnetType.PUBLIC,
@@ -115,7 +129,7 @@ export class RuntimeNode extends Construct {
 
 		this.instance.addUserData(`
 		#domain join with secret from secret manager
-		[string]$SecretAD  = "${props.secret.secretName}"
+		[string]$SecretAD  = "${secret.secretName}"
 		$SecretObj = Get-SECSecretValue -SecretId $SecretAD
 		[PSCustomObject]$Secret = ($SecretObj.SecretString  | ConvertFrom-Json)
 		$password   = $Secret.Password | ConvertTo-SecureString -asPlainText -Force

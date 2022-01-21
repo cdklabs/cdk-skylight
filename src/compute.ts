@@ -13,24 +13,30 @@
 
 // Imports
 import { Construct } from "constructs";
-import { aws_ec2 as ec2, aws_eks, aws_iam } from "aws-cdk-lib";
+import { aws_ec2, aws_eks, aws_iam, aws_ssm } from "aws-cdk-lib";
+import { AutoScalingGroup } from "aws-cdk-lib/aws-autoscaling";
 
 const yaml = require("js-yaml");
 const fs = require("fs");
 
-/**
- * The properties for the Compute class.
- */
-export interface IComputeProps {
-	vpc: ec2.IVpc;
-}
 export class Compute extends Construct {
-	readonly vpc: ec2.IVpc;
-	readonly ekscluster: aws_eks.Cluster;
-
-	constructor(scope: Construct, id: string, props: IComputeProps) {
+	constructor(scope: Construct, id: string) {
 		super(scope, id);
-		this.vpc = props.vpc;
+	}
+}
+
+export class KubeCompute extends Compute {
+	readonly ekscluster: aws_eks.Cluster;
+	readonly vpc: aws_ec2.IVpc;
+	constructor(
+		scope: Construct,
+		id: string,
+		vpc: aws_ec2.IVpc,
+		namespace: string
+	) {
+		super(scope, id);
+
+		this.vpc = vpc;
 
 		const eks_role = new aws_iam.Role(this, "eks-instance-role", {
 			assumedBy: new aws_iam.ServicePrincipal("ec2.amazonaws.com"),
@@ -63,7 +69,7 @@ export class Compute extends Construct {
 
 		this.ekscluster = new aws_eks.Cluster(this, "WindowsEKSCluster", {
 			version: aws_eks.KubernetesVersion.V1_21,
-			vpc: this.vpc,
+			vpc: vpc,
 		});
 
 		this.ekscluster.awsAuth.addRoleMapping(eks_role, {
@@ -75,5 +81,27 @@ export class Compute extends Construct {
 			"WindowsSupport",
 			yaml.load(fs.readFileSync("./src/windows-support.yaml", "utf8"))
 		);
+
+		new aws_ssm.StringParameter(this, "secretName", {
+			parameterName: `/${namespace}/secretName`,
+			stringValue: this.ekscluster.clusterName,
+		});
+	}
+
+	run(node: AutoScalingGroup) {
+		this.ekscluster.connectAutoScalingGroupCapacity(node, {
+			bootstrapEnabled: false,
+		});
+	}
+
+	addPermission(role: aws_iam.Role) {
+		this.ekscluster.awsAuth.addRoleMapping(role, {
+			groups: [
+				"system:bootstrappers",
+				"system:nodes",
+				"eks:kube-proxy-windows",
+			],
+			username: "system:node:{{EC2PrivateDNSName}}",
+		});
 	}
 }

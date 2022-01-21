@@ -13,11 +13,7 @@
 
 // Imports
 import { Construct } from "constructs";
-import {
-	aws_fsx as fsx,
-	aws_ec2 as ec2,
-	aws_directoryservice,
-} from "aws-cdk-lib";
+import { aws_fsx as fsx, aws_ec2 as ec2, aws_ssm } from "aws-cdk-lib";
 
 /**
  * The properties for the PersistentStorage class.
@@ -51,25 +47,29 @@ export interface IPersistentStorageProps {
 	 * The VPC to use, must have private subnets.
 	 */
 	vpc: ec2.IVpc;
-
-	/**
-	 * The AD to use, must be in the same VPC.
-	 */
-	ad: aws_directoryservice.CfnMicrosoftAD;
 }
 
 export class PersistentStorage extends Construct {
 	readonly fsx: fsx.CfnFileSystem;
 	readonly vpc: ec2.IVpc;
-	readonly ad: aws_directoryservice.CfnMicrosoftAD;
-	constructor(scope: Construct, id: string, props: IPersistentStorageProps) {
+	constructor(
+		scope: Construct,
+		id: string,
+		namespace: string,
+		props: IPersistentStorageProps
+	) {
 		super(scope, id);
 		props.fsxInPrivateSubnet = props.fsxInPrivateSubnet ?? true;
 		props.fsxMbps = props.fsxMbps ?? 128;
 		props.fsxSize = props.fsxSize ?? 200;
 		props.multiAZ = props.multiAZ ?? true;
+
 		this.vpc = props.vpc;
-		this.ad = props.ad;
+
+		const ad = aws_ssm.StringParameter.valueForStringParameter(
+			this,
+			`${namespace}/ad`
+		);
 
 		const subnets = this.vpc.selectSubnets({
 			subnetType: props.fsxInPrivateSubnet
@@ -80,7 +80,7 @@ export class PersistentStorage extends Construct {
 		const windows_configuration: fsx.CfnFileSystem.WindowsConfigurationProperty =
 			{
 				throughputCapacity: props.fsxMbps,
-				activeDirectoryId: this.ad.ref,
+				activeDirectoryId: ad,
 				deploymentType: props.multiAZ ? "MULTI_AZ_1" : "SINGLE_AZ_2",
 				preferredSubnetId: props.multiAZ ? subnets[0] : undefined,
 			};
@@ -101,5 +101,10 @@ export class PersistentStorage extends Construct {
 		};
 
 		this.fsx = new fsx.CfnFileSystem(this, (id = id + "-FSxObject"), fsx_props);
+
+		new aws_ssm.StringParameter(this, "fsxEndpoint", {
+			parameterName: `/${namespace}/fsxEndpoint`,
+			stringValue: this.fsx.getAtt("DNSName").toString(),
+		});
 	}
 }

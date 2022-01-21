@@ -13,25 +13,28 @@
 
 import { aws_ec2 } from "aws-cdk-lib";
 import { Construct } from "constructs";
-import { Compute, PersistentStorage, Authentication, RuntimeNode } from ".";
+import { PersistentStorage, Authentication } from "..";
+import { KubeCompute } from "../compute";
+import { BusinessLogic } from "./businessLogic";
 
-export class BusinessLogicExample extends Construct {
+export class WindowsInfra extends Construct {
 	constructor(scope: Construct, id: string) {
 		super(scope, id);
+		const namespace = "/exampleApp01";
+
 		const myVPC = new aws_ec2.Vpc(this, "myVPC", { maxAzs: 2 });
-		const authentication = new Authentication(this, "auth", {
+
+		new Authentication(this, "auth", namespace, {
 			vpc: myVPC,
 			domainName: "myDomain.aws",
 		});
-		const storage = new PersistentStorage(this, "storage", {
+		new PersistentStorage(this, "storage", namespace, {
 			vpc: myVPC,
-			ad: authentication.ad,
 		});
-		const cluster = new Compute(this, "ComputeCluster", { vpc: myVPC });
-		const myNode = new RuntimeNode(this, "worker1", {
-			vpc: myVPC,
-			secret: authentication.secret,
-			instanceType: "m5.large",
-		});
+		const cluster = new KubeCompute(this, "ComputeCluster", myVPC, namespace);
+
+		const businessLogic = new BusinessLogic(this, "myApp", myVPC, namespace);
+		cluster.addPermission(businessLogic.myNodes.windows_workers_role);
+		cluster.run(businessLogic.myNodes.asg);
 	}
 }

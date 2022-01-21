@@ -1,10 +1,13 @@
 import { aws_ec2, Stack } from "aws-cdk-lib";
-import { Compute } from "../src";
+import { KubeCompute } from "../src/compute";
 
 test("compute-test", () => {
 	const stack = new Stack();
-	const mad = new Compute(stack, "ElasticCluster", {
-		vpc: new aws_ec2.Vpc(stack, "myVPC"),
-	});
+	const mad = new KubeCompute(
+		stack,
+		"ElasticCluster",
+		new aws_ec2.Vpc(stack, "vpc", {}),
+		"/test"
+	);
 	expect(mad).toHaveProperty("ekscluster.clusterName");
 });
