@@ -13,8 +13,8 @@
 
 import { aws_ec2 } from "aws-cdk-lib";
 import { Construct } from "constructs";
-import { PersistentStorage, Authentication } from "..";
-import { KubeCompute } from "../compute";
+import { PersistentStorage, Authentication } from "../src";
+import { KubeCompute } from "../src/compute";
 import { BusinessLogic } from "./businessLogic";
 
 export class WindowsInfra extends Construct {

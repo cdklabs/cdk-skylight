@@ -1,6 +1,6 @@
 import { App, Stack } from "aws-cdk-lib";
 // import { ExampleApp } from "../src/ExampleApp/app";
-import { WindowsInfra } from "../src/ExampleApp/infrastructure";
+import { WindowsInfra } from "../ExampleApp/infrastructure";
 
 test("ExampleApp", () => {
 	const env = {

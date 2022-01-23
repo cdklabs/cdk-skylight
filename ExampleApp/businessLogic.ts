@@ -13,7 +13,7 @@
 
 import { aws_ec2 } from "aws-cdk-lib";
 import { Construct } from "constructs";
-import { KubeWindowsASG } from "../runtimeNodes";
+import { KubeWindowsASG } from "../src/runtimeNodes";
 
 export class BusinessLogic extends Construct {
 	readonly myNodes: KubeWindowsASG;
