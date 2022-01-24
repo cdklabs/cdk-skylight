@@ -13,7 +13,7 @@
 
 // Imports
 import { Construct } from "constructs";
-import { aws_fsx as fsx, aws_ec2 as ec2, aws_ssm } from "aws-cdk-lib";
+import { aws_ec2 as ec2, aws_ssm, aws_efs, aws_fsx } from "aws-cdk-lib";
 
 /**
  * The properties for the PersistentStorage class.
@@ -49,8 +49,13 @@ export interface IPersistentStorageProps {
 	vpc: ec2.IVpc;
 }
 
-export class PersistentStorage extends Construct {
-	readonly fsx: fsx.CfnFileSystem;
+export interface PersistentStorage {
+	storageObject: aws_fsx.CfnFileSystem | aws_efs.FileSystem;
+	vpc: ec2.IVpc;
+}
+
+export class FSxWindows extends Construct implements PersistentStorage {
+	readonly storageObject: aws_fsx.CfnFileSystem;
 	readonly vpc: ec2.IVpc;
 	constructor(
 		scope: Construct,
@@ -77,7 +82,7 @@ export class PersistentStorage extends Construct {
 				: ec2.SubnetType.PUBLIC,
 		}).subnetIds;
 
-		const windows_configuration: fsx.CfnFileSystem.WindowsConfigurationProperty =
+		const windows_configuration: aws_fsx.CfnFileSystem.WindowsConfigurationProperty =
 			{
 				throughputCapacity: props.fsxMbps,
 				activeDirectoryId: ad,
@@ -92,7 +97,7 @@ export class PersistentStorage extends Construct {
 		// Allow access from inside the VPC
 		sg.addIngressRule(ec2.Peer.ipv4(this.vpc.vpcCidrBlock), ec2.Port.allTcp());
 
-		const fsx_props: fsx.CfnFileSystemProps = {
+		const fsx_props: aws_fsx.CfnFileSystemProps = {
 			fileSystemType: "WINDOWS",
 			subnetIds: props.multiAZ ? [subnets[0], subnets[1]] : [subnets[0]],
 			windowsConfiguration: windows_configuration,
@@ -100,11 +105,15 @@ export class PersistentStorage extends Construct {
 			securityGroupIds: [sg.securityGroupId],
 		};
 
-		this.fsx = new fsx.CfnFileSystem(this, (id = id + "-FSxObject"), fsx_props);
+		this.storageObject = new aws_fsx.CfnFileSystem(
+			this,
+			(id = id + "-FSxObject"),
+			fsx_props
+		);
 
 		new aws_ssm.StringParameter(this, "fsxEndpoint", {
 			parameterName: `/${namespace}/fsxEndpoint`,
-			stringValue: this.fsx.getAtt("DNSName").toString(),
+			stringValue: this.storageObject.getAtt("DNSName").toString(),
 		});
 	}
 }

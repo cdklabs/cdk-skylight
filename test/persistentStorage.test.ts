@@ -1,10 +1,14 @@
 import { aws_ec2, Stack } from "aws-cdk-lib";
-import { PersistentStorage } from "../src";
+// import { PersistentStorage } from "../src";
+import { FSxWindows } from "../src/persistentStorage";
 
 test("storageTest", () => {
 	const stack = new Stack();
-	const storage = new PersistentStorage(stack, "PersistentStorage", "/test", {
+	const storage = new FSxWindows(stack, "PersistentStorage", "/test", {
 		vpc: new aws_ec2.Vpc(stack, "vpc", {}),
 	});
-	expect(storage).toHaveProperty("fsx.cfnResourceType", "AWS::FSx::FileSystem");
+	expect(storage).toHaveProperty(
+		"storageObject.cfnResourceType",
+		"AWS::FSx::FileSystem"
+	);
 });

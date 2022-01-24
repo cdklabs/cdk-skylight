@@ -13,8 +13,9 @@
 
 import { aws_ec2 } from "aws-cdk-lib";
 import { Construct } from "constructs";
-import { PersistentStorage, Authentication } from "../src";
+import { Authentication } from "../src";
 import { KubeCompute } from "../src/compute";
+import { FSxWindows } from "../src/persistentStorage";
 import { BusinessLogic } from "./businessLogic";
 
 export class WindowsInfra extends Construct {
@@ -28,7 +29,7 @@ export class WindowsInfra extends Construct {
 			vpc: myVPC,
 			domainName: "myDomain.aws",
 		});
-		new PersistentStorage(this, "storage", namespace, {
+		new FSxWindows(this, "storage", namespace, {
 			vpc: myVPC,
 		});
 		const cluster = new KubeCompute(this, "ComputeCluster", myVPC, namespace);

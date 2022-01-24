@@ -184,15 +184,13 @@ export class RuntimeNode extends Construct {
 			"$SecretObj = Get-SECSecretValue -SecretId $SecretAD",
 			"[PSCustomObject]$Secret = ($SecretObj.SecretString  | ConvertFrom-Json)",
 			"$password   = $Secret.Password | ConvertTo-SecureString -asPlainText -Force",
-			"$username   = $Secret.UserID + '@' + $Secret.Domain",
+			" $username   = $Secret.Domain + '\\' + $Secret.UserID ",
 			"$domain_admin_credential = New-Object System.Management.Automation.PSCredential($username,$password)",
 			"New-Item -ItemType Directory -Path c:\\Scripts",
-			"$onTimePS | set-content c:\\Scripts\\onTimePS.ps1",
-			"# Create a scheduled task to run now with domain user",
-			"$action = New-ScheduledTaskAction -Execute 'Powershell.exe' -Argument 'c:\\scripts\\onTimePS.ps1'",
-			"$trigger =  New-ScheduledTaskTrigger -Once -At (Get-Date)",
-			"Register-ScheduledTask -Action $action -Trigger $trigger -TaskName 'PSTaskOnce' -Description 'Workaround to run with domain user' -RunLevel Highest -User $username -Password $Secret.Password",
-			""
+			'$tempScriptPath = "C:\\Scripts\\$PID.ps1"',
+			"$oneTimePS | set-content $tempScriptPath",
+			'Start-Process Powershell -Argumentlist "-ExecutionPolicy Bypass -NoProfile -File C:\\Scripts\\$PID.ps1" -Credential $domain_admin_credential',
+			"Remove-Item $tempScriptPath"
 		);
 		new ssm.CfnAssociation(this, id, {
 			name: "AWS-RunPowerShellScript",
