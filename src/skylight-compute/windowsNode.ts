@@ -22,9 +22,9 @@ import {
 } from "aws-cdk-lib";
 
 /**
- * The properties for the RuntimeNode class.
+ * The properties for the WindowsNode class.
  */
-export interface IRuntimeNodeProps {
+export interface IWindowsNodeProps {
 	/**
 	 * IAM Instance role permissions
 	 * @default - 'AmazonSSMManagedInstanceCore, AmazonSSMDirectoryServiceAccess'.
@@ -60,9 +60,9 @@ export interface IRuntimeNodeProps {
 }
 
 /**
- * The RuntimeNode class.
+ * The WindowsNode class.
  */
-export class RuntimeNode extends Construct {
+export class WindowsNode extends Construct {
 	readonly instance: ec2.Instance;
 	readonly nodeRole: iam.Role;
 	readonly vpc: ec2.IVpc;
@@ -71,7 +71,7 @@ export class RuntimeNode extends Construct {
 		scope: Construct,
 		id: string,
 		namespace: string,
-		props: IRuntimeNodeProps
+		props: IWindowsNodeProps
 	) {
 		super(scope, id);
 		props.iamManagedPoliciesList = props.iamManagedPoliciesList ?? [

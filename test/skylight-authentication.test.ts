@@ -1,10 +1,11 @@
 import { aws_ec2, Stack } from "aws-cdk-lib";
-import { Authentication } from "../src";
+import { AdAuthentication } from "../src";
 
 test("authentication", () => {
 	const stack = new Stack();
-	const mad = new Authentication(stack, "Authentication", "/test", {
+	const mad = new AdAuthentication(stack, "AdAuthentication", {
 		vpc: new aws_ec2.Vpc(stack, "vpc", {}),
+		namespace: "/test",
 	});
 	expect(mad).toHaveProperty(
 		"ad.cfnResourceType",

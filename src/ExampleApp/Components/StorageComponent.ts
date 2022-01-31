@@ -10,24 +10,22 @@
  *  OR CONDITIONS OF ANY KIND, express or implied. See the License for the specific language governing permissions
  *  and limitations under the License.
  */
-import { App, Stack, StackProps } from "aws-cdk-lib";
+
+// Imports
+import { aws_ec2, Stack, StackProps } from "aws-cdk-lib";
 import { Construct } from "constructs";
-import { WindowsInfra } from "./infrastructure";
+import { FSxWindows } from "../../skylight-storage/fsxWindows";
+import { Configuration } from "../configuration";
 
-export class ExampleApp extends Stack {
-	constructor(scope: Construct, id: string, props?: StackProps) {
+export class StorageComponent extends Stack {
+	constructor(
+		scope: Construct,
+		id: string,
+		configuration: Configuration,
+		vpc: aws_ec2.Vpc,
+		props?: StackProps
+	) {
 		super(scope, id, props);
-
-		new WindowsInfra(this, "infra");
+		new FSxWindows(this, "FSx", configuration.namespace, { vpc: vpc });
 	}
 }
-
-const app = new App();
-const cdk_props: StackProps = {
-	env: {
-		account: process.env.CDK_DEFAULT_ACCOUNT,
-		region: process.env.CDK_DEFAULT_REGION,
-	},
-};
-
-new ExampleApp(app, "myApp01", cdk_props);

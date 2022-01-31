@@ -11,23 +11,11 @@
  *  and limitations under the License.
  */
 
-// Imports
+import { Stack } from "aws-cdk-lib";
 import { Construct } from "constructs";
 
-/**
- * The properties for the Configuration class.
- */
-export interface IConfigurationProps {
-	namespace: string;
-	dbConnectionString: string;
-}
-export class Configuration extends Construct {
-	readonly namespace: string;
-	readonly dbConnectionString: string;
-
-	constructor(scope: Construct, id: string, props: IConfigurationProps) {
+export class BusinessLogic extends Stack {
+	constructor(scope: Construct, id: string) {
 		super(scope, id);
-		this.namespace = props.namespace;
-		this.dbConnectionString = props.dbConnectionString;
 	}
 }

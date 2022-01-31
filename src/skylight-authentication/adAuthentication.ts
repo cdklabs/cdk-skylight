@@ -18,14 +18,13 @@ import {
 	aws_ec2 as ec2,
 	aws_route53resolver as r53resolver,
 	aws_secretsmanager as secretsmanager,
-	aws_ssm,
 	CfnOutput,
 	Fn,
 } from "aws-cdk-lib";
 /**
- * The properties for the Authentication class.
+ * The properties for the AdAuthentication class.
  */
-export interface IAuthenticationProps {
+export interface IADAuthenticationProps {
 	/**
 	 * The domain name for the Active Directory Domain.
 	 *
@@ -46,27 +45,29 @@ export interface IAuthenticationProps {
 	 */
 	secret?: secretsmanager.ISecret;
 	/**
+	 * The name of the secret to save once generated or stored
+	 * @default - 'Domain name + Secret'.
+	 */
+	secretName?: string;
+	/**
 	 * The VPC to use, must have private subnets.
 	 */
 	vpc: ec2.IVpc;
+	/**
+	 * The SSM namespace to save parameters to
+	 */
+	namespace: string;
 }
-export class Authentication extends Construct {
+
+export class AdAuthentication extends Construct {
 	readonly secret: secretsmanager.ISecret;
 	readonly ad: mad.CfnMicrosoftAD;
-	readonly vpc: ec2.IVpc;
 
-	constructor(
-		scope: Construct,
-		id: string,
-		namespace: string,
-		props: IAuthenticationProps
-	) {
+	constructor(scope: Construct, id: string, props: IADAuthenticationProps) {
 		super(scope, id);
 		props.domainName = props.domainName ?? "domain.aws";
 		props.edition = props.edition ?? "Standard";
-
-		this.vpc = props.vpc;
-		const secretName = props.domainName + "-secret";
+		props.secretName = props.secretName ?? `${props.domainName}-secret`;
 		this.secret =
 			props.secret ??
 			new secretsmanager.Secret(this, `${id}-${props.domainName}-secret`, {
@@ -78,15 +79,10 @@ export class Authentication extends Construct {
 					generateStringKey: "Password",
 					excludePunctuation: true,
 				},
-				secretName: secretName,
+				secretName: props.secretName,
 			});
 
-		new aws_ssm.StringParameter(this, "secretName", {
-			parameterName: `/${namespace}/secretName`,
-			stringValue: secretName,
-		});
-
-		const subnets = this.vpc.selectSubnets({
+		const subnets = props.vpc.selectSubnets({
 			subnetType: ec2.SubnetType.PRIVATE_WITH_NAT,
 		});
 
@@ -102,15 +98,15 @@ export class Authentication extends Construct {
 			name: props.domainName,
 			vpcSettings: {
 				subnetIds: [subnets.subnetIds[0], subnets.subnetIds[1]],
-				vpcId: this.vpc.vpcId,
+				vpcId: props.vpc.vpcId,
 			},
 		});
 
 		const sg = new ec2.SecurityGroup(this, id + "-r53-outbound-Resolver-SG", {
-			vpc: this.vpc,
+			vpc: props.vpc,
 		});
-		sg.addIngressRule(ec2.Peer.ipv4(this.vpc.vpcCidrBlock), ec2.Port.udp(53));
-		sg.addIngressRule(ec2.Peer.ipv4(this.vpc.vpcCidrBlock), ec2.Port.tcp(53));
+		sg.addIngressRule(ec2.Peer.ipv4(props.vpc.vpcCidrBlock), ec2.Port.udp(53));
+		sg.addIngressRule(ec2.Peer.ipv4(props.vpc.vpcCidrBlock), ec2.Port.tcp(53));
 
 		const outBoundResolver = new r53resolver.CfnResolverEndpoint(
 			this,
@@ -143,7 +139,7 @@ export class Authentication extends Construct {
 			id + "-r53-resolver-association",
 			{
 				resolverRuleId: resolverRules.attrResolverRuleId,
-				vpcId: this.vpc.vpcId,
+				vpcId: props.vpc.vpcId,
 			}
 		);
 	}

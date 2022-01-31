@@ -1,6 +1,6 @@
 import { aws_ec2, Stack } from "aws-cdk-lib";
 // import { PersistentStorage } from "../src";
-import { FSxWindows } from "../src/persistentStorage";
+import { FSxWindows } from "../src";
 
 test("storageTest", () => {
 	const stack = new Stack();

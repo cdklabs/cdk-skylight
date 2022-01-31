@@ -33,7 +33,7 @@ With CDK Skylight you can build complex integration.
 
 # CDK Skylight Constructs 
 
-### **Authentication**
+### **AdAuthentication**
 
 This construct creates Amazon VPC, Amazon Managed AD, Secret for the domain Admin stored in Secrets Manager and Route 53 forward rule for the domain.
 
@@ -42,7 +42,7 @@ The construct provides way to customize configuration and smart defaults for the
 Example:
 
 ```typescript
-const vpc_infrasracture = new Authentication(this, "Main-Infra", { domain_name: "cdkskylight.aws"});
+const vpc_infrasracture = new AdAuthentication(this, "Main-Infra", { domain_name: "cdkskylight.aws"});
 ```
 
 ### **PersistentStorage**
@@ -83,14 +83,14 @@ const eks_nodes = new WindowsEKSNodes(this, 'EKS-Nodes',
 	eks_infra);
 ```
 
-### **RuntimeNode**
+### **WindowsNode**
 
 The stack creates Windows Server with the latest AMI and joined the machine to the domain. It is possible to send Powershell commands or connect and work from the machine. 
 
 Example:
 
 ```typescript
-const Worker = new RuntimeNode(this, 'WindowsWorker',{
+const Worker = new WindowsNode(this, 'WindowsWorker',{
 	vpc: vpc_infrastructure.vpc, 
 	madObject: vpc_infrastructure.ad);
 ```

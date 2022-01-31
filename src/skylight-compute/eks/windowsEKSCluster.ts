@@ -14,13 +14,13 @@
 // Imports
 import { Construct } from "constructs";
 import { aws_ec2, aws_eks, aws_iam, aws_ssm } from "aws-cdk-lib";
-import { AutoScalingGroup } from "aws-cdk-lib/aws-autoscaling";
 
 const yaml = require("js-yaml");
 const fs = require("fs");
 
-export class WindowsEKSCluster extends Stack {
-	readonly 
+export class WindowsEKSCluster extends Construct {
+	readonly eksCluster: aws_eks.Cluster;
+	readonly vpc: aws_ec2.IVpc;
 	constructor(
 		scope: Construct,
 		id: string,
@@ -60,41 +60,30 @@ export class WindowsEKSCluster extends Stack {
 			],
 		});
 
-		this.ekscluster = new aws_eks.Cluster(this, "WindowsEKSCluster", {
+		this.eksCluster = new aws_eks.Cluster(this, "WindowsEKSCluster", {
 			version: aws_eks.KubernetesVersion.V1_21,
 			vpc: vpc,
 		});
 
-		this.ekscluster.awsAuth.addRoleMapping(eks_role, {
+		this.eksCluster.awsAuth.addRoleMapping(eks_role, {
 			groups: ["system:bootstrappers", "system:nodes"],
 			username: "system:node:{{EC2PrivateDNSName}}",
 		});
 
-		this.ekscluster.addManifest(
+		// https://docs.aws.amazon.com/eks/latest/userguide/windows-support.html#enable-windows-support
+		this.eksCluster.addManifest(
 			"WindowsSupport",
-			yaml.load(fs.readFileSync("./src/windows-support.yaml", "utf8"))
+			yaml.load(
+				fs.readFileSync(
+					"./src/skylight-compute/eks/windows-support.yaml",
+					"utf8"
+				)
+			)
 		);
 
 		new aws_ssm.StringParameter(this, "secretName", {
 			parameterName: `/${namespace}/secretName`,
-			stringValue: this.ekscluster.clusterName,
-		});
-	}
-
-	run(node: AutoScalingGroup) {
-		this.ekscluster.connectAutoScalingGroupCapacity(node, {
-			bootstrapEnabled: false,
-		});
-	}
-
-	addPermission(role: aws_iam.Role) {
-		this.ekscluster.awsAuth.addRoleMapping(role, {
-			groups: [
-				"system:bootstrappers",
-				"system:nodes",
-				"eks:kube-proxy-windows",
-			],
-			username: "system:node:{{EC2PrivateDNSName}}",
+			stringValue: this.eksCluster.clusterName,
 		});
 	}
 }
