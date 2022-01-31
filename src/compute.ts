@@ -19,15 +19,8 @@ import { AutoScalingGroup } from "aws-cdk-lib/aws-autoscaling";
 const yaml = require("js-yaml");
 const fs = require("fs");
 
-export class Compute extends Construct {
-	constructor(scope: Construct, id: string) {
-		super(scope, id);
-	}
-}
-
-export class KubeCompute extends Compute {
-	readonly ekscluster: aws_eks.Cluster;
-	readonly vpc: aws_ec2.IVpc;
+export class WindowsEKSCluster extends Stack {
+	readonly 
 	constructor(
 		scope: Construct,
 		id: string,
