@@ -11,11 +11,11 @@
  *  and limitations under the License.
  */
 
-import { Stack } from "aws-cdk-lib";
-import { Construct } from "constructs";
+import { Stack } from 'aws-cdk-lib';
+import { Construct } from 'constructs';
 
 export class BusinessLogic extends Stack {
-	constructor(scope: Construct, id: string) {
-		super(scope, id);
-	}
+  constructor(scope: Construct, id: string) {
+    super(scope, id);
+  }
 }

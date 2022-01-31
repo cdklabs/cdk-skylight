@@ -12,20 +12,19 @@
  */
 
 // Imports
-import { aws_ec2, Stack, StackProps } from "aws-cdk-lib";
-import { Construct } from "constructs";
-import { FSxWindows } from "../../skylight-storage/fsxWindows";
-import { Configuration } from "../configuration";
+import { aws_ec2, Stack, StackProps } from 'aws-cdk-lib';
+import { Construct } from 'constructs';
+import { FSxWindows } from '../../skylight-storage/fsxWindows';
 
 export class StorageComponent extends Stack {
-	constructor(
-		scope: Construct,
-		id: string,
-		configuration: Configuration,
-		vpc: aws_ec2.Vpc,
-		props?: StackProps
-	) {
-		super(scope, id, props);
-		new FSxWindows(this, "FSx", configuration.namespace, { vpc: vpc });
-	}
+  constructor(
+    scope: Construct,
+    id: string,
+    namespace: string,
+    vpc: aws_ec2.Vpc,
+    props?: StackProps,
+  ) {
+    super(scope, id, props);
+    new FSxWindows(this, 'FSx', namespace, { vpc: vpc });
+  }
 }

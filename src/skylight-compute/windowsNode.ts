@@ -11,123 +11,123 @@
  *  and limitations under the License.
  */
 
-import { Construct } from "constructs";
 import {
-	aws_iam as iam,
-	aws_ec2 as ec2,
-	aws_ssm as ssm,
-	CfnOutput,
-	aws_secretsmanager,
-	aws_ssm,
-} from "aws-cdk-lib";
+  aws_iam as iam,
+  aws_ec2 as ec2,
+  aws_ssm as ssm,
+  CfnOutput,
+  aws_secretsmanager,
+  aws_ssm,
+} from 'aws-cdk-lib';
+import { Construct } from 'constructs';
 
 /**
  * The properties for the WindowsNode class.
  */
 export interface IWindowsNodeProps {
-	/**
+  /**
 	 * IAM Instance role permissions
 	 * @default - 'AmazonSSMManagedInstanceCore, AmazonSSMDirectoryServiceAccess'.
 	 */
-	iamManagedPoliciesList?: iam.IManagedPolicy[];
-	/**
+  iamManagedPoliciesList?: iam.IManagedPolicy[];
+  /**
 	 * The EC2 Instance type to use
 	 *
 	 * @default - 'm5.2xlarge'.
 	 */
-	instanceType?: string;
-	/**
+  instanceType?: string;
+  /**
 	 * Choose if to launch the instance in Private or in Public subnet
 	 * Private = Subnet that routes to the internet, but not vice versa.
 	 * Public = Subnet that routes to the internet and vice versa.
 	 * @default - Private.
 	 */
-	usePrivateSubnet?: boolean;
-	/**
+  usePrivateSubnet?: boolean;
+  /**
 	 * The name of the AMI to search in SSM (ec2.LookupNodeImage) supports Regex
 	 *  @default - 'Windows_Server-2022-English-Full'
 	 */
-	amiName?: string;
-	/**
+  amiName?: string;
+  /**
 	 * UserData string
 	 *  @default - 'No'
 	 */
-	userData?: string;
-	/**
+  userData?: string;
+  /**
 	 * The VPC to use, must have private subnets.
 	 */
-	vpc: ec2.IVpc;
+  vpc: ec2.IVpc;
 }
 
 /**
  * The WindowsNode class.
  */
 export class WindowsNode extends Construct {
-	readonly instance: ec2.Instance;
-	readonly nodeRole: iam.Role;
-	readonly vpc: ec2.IVpc;
+  readonly instance: ec2.Instance;
+  readonly nodeRole: iam.Role;
+  readonly vpc: ec2.IVpc;
 
-	constructor(
-		scope: Construct,
-		id: string,
-		namespace: string,
-		props: IWindowsNodeProps
-	) {
-		super(scope, id);
-		props.iamManagedPoliciesList = props.iamManagedPoliciesList ?? [
-			iam.ManagedPolicy.fromAwsManagedPolicyName(
-				"AmazonSSMManagedInstanceCore"
-			),
-		];
+  constructor(
+    scope: Construct,
+    id: string,
+    namespace: string,
+    props: IWindowsNodeProps,
+  ) {
+    super(scope, id);
+    props.iamManagedPoliciesList = props.iamManagedPoliciesList ?? [
+      iam.ManagedPolicy.fromAwsManagedPolicyName(
+        'AmazonSSMManagedInstanceCore',
+      ),
+    ];
 
-		props.usePrivateSubnet = props.usePrivateSubnet ?? false;
-		props.userData = props.userData ?? "";
-		this.vpc = props.vpc;
+    props.usePrivateSubnet = props.usePrivateSubnet ?? false;
+    props.userData = props.userData ?? '';
+    this.vpc = props.vpc;
 
-		const secretName = aws_ssm.StringParameter.valueForStringParameter(
-			this,
-			`${namespace}/authentication`
-		);
+    const secretName = aws_ssm.StringParameter.valueForStringParameter(
+      this,
+      `${namespace}/authentication`,
+    );
 
-		const secret = aws_secretsmanager.Secret.fromSecretNameV2(
-			this,
-			"secret",
-			secretName
-		);
+    const secret = aws_secretsmanager.Secret.fromSecretNameV2(
+      this,
+      'secret',
+      secretName,
+    );
 
-		const nodeImage = new ec2.LookupMachineImage({
-			name: props.amiName ?? "*Windows_Server-2022-English-Full*",
-			windows: true,
-		});
+    const nodeImage = new ec2.LookupMachineImage({
+      name: props.amiName ?? '*Windows_Server-2022-English-Full*',
+      windows: true,
+    });
 
-		this.nodeRole = new iam.Role(this, id + "-instance-role", {
-			assumedBy: new iam.ServicePrincipal("ec2.amazonaws.com"),
-			managedPolicies: props.iamManagedPoliciesList,
-		});
+    this.nodeRole = new iam.Role(this, id + '-instance-role', {
+      assumedBy: new iam.ServicePrincipal('ec2.amazonaws.com'),
+      managedPolicies: props.iamManagedPoliciesList,
+    });
 
-		const securityGroup = new ec2.SecurityGroup(this, id + "-securityGroup", {
-			vpc: this.vpc,
-		});
+    const securityGroup = new ec2.SecurityGroup(this, id + '-securityGroup', {
+      vpc: this.vpc,
+    });
 
-		this.instance = new ec2.Instance(this, id + "-ec2instance", {
-			instanceType: new ec2.InstanceType(props.instanceType ?? "m5.large"),
-			machineImage: nodeImage,
-			vpc: this.vpc,
-			role: this.nodeRole,
-			securityGroup: securityGroup,
-			vpcSubnets: this.vpc.selectSubnets({
-				subnetType: props.usePrivateSubnet
-					? ec2.SubnetType.PRIVATE_WITH_NAT
-					: ec2.SubnetType.PUBLIC,
-				onePerAz: true,
-			}),
-		});
+    this.instance = new ec2.Instance(this, id + '-ec2instance', {
+      instanceType: new ec2.InstanceType(props.instanceType ?? 'm5.large'),
+      machineImage: nodeImage,
+      vpc: this.vpc,
+      role: this.nodeRole,
+      securityGroup: securityGroup,
+      vpcSubnets: this.vpc.selectSubnets({
+        subnetType: props.usePrivateSubnet
+          ? ec2.SubnetType.PRIVATE_WITH_NAT
+          : ec2.SubnetType.PUBLIC,
+        onePerAz: true,
+      }),
+    });
 
-		if (props.userData != "") {
-			this.instance.addUserData(props.userData);
-		}
+    if (props.userData != '') {
+      this.instance.addUserData(props.userData);
+    }
 
-		this.instance.addUserData(`
+    this.instance.addUserData(`
 		#domain join with secret from secret manager
 		[string]$SecretAD  = "${secret.secretName}"
 		$SecretObj = Get-SECSecretValue -SecretId $SecretAD
@@ -139,65 +139,65 @@ export class WindowsNode extends Construct {
 		Restart-Computer -Force
     `);
 
-		new CfnOutput(this, id + "-stack-output", {
-			value: `InstanceId: ${this.instance.instanceId}; dnsName: ${this.instance.instancePublicDnsName}`,
-		});
-	}
+    new CfnOutput(this, id + '-stack-output', {
+      value: `InstanceId: ${this.instance.instanceId}; dnsName: ${this.instance.instancePublicDnsName}`,
+    });
+  }
 
-	/**
+  /**
 	 * Running powershell scripts on the Node with SSM Document.
 	 * i.e: runPsCommands(["Write-host 'Hello world'", "Write-host 'Second command'"], "myScript")
 	 */
-	runPsCommands(psCommands: string[], id: string) {
-		new ssm.CfnAssociation(this, id, {
-			name: "AWS-RunPowerShellScript",
-			parameters: {
-				commands: psCommands,
-			},
-			targets: [{ key: "InstanceIds", values: [this.instance.instanceId] }],
-		});
-	}
-	/**
+  runPsCommands(psCommands: string[], id: string) {
+    new ssm.CfnAssociation(this, id, {
+      name: 'AWS-RunPowerShellScript',
+      parameters: {
+        commands: psCommands,
+      },
+      targets: [{ key: 'InstanceIds', values: [this.instance.instanceId] }],
+    });
+  }
+  /**
 	 * Open the security group of the Node Node to specific IP address on port 3389
 	 * i.e: openRDP("1.1.1.1/32")
 	 */
-	openRDP(ipaddress: string) {
-		this.instance.connections.allowFrom(
-			ec2.Peer.ipv4(ipaddress),
-			ec2.Port.tcp(3389),
-			"Allow RDP"
-		);
-	}
+  openRDP(ipaddress: string) {
+    this.instance.connections.allowFrom(
+      ec2.Peer.ipv4(ipaddress),
+      ec2.Port.tcp(3389),
+      'Allow RDP',
+    );
+  }
 
-	runPSwithDomainAdmin(
-		psCommands: string[],
-		secret: aws_secretsmanager.ISecret,
-		id: string
-	) {
-		var commands = ["$onTimePS = {"];
-		psCommands.forEach((command: string) => {
-			commands.push(command);
-		});
-		commands.push(
-			"}",
-			`[string]$SecretAD  = '${secret.secretName}'`,
-			"$SecretObj = Get-SECSecretValue -SecretId $SecretAD",
-			"[PSCustomObject]$Secret = ($SecretObj.SecretString  | ConvertFrom-Json)",
-			"$password   = $Secret.Password | ConvertTo-SecureString -asPlainText -Force",
-			" $username   = $Secret.Domain + '\\' + $Secret.UserID ",
-			"$domain_admin_credential = New-Object System.Management.Automation.PSCredential($username,$password)",
-			"New-Item -ItemType Directory -Path c:\\Scripts",
-			'$tempScriptPath = "C:\\Scripts\\$PID.ps1"',
-			"$oneTimePS | set-content $tempScriptPath",
-			'Start-Process Powershell -Argumentlist "-ExecutionPolicy Bypass -NoProfile -File C:\\Scripts\\$PID.ps1" -Credential $domain_admin_credential',
-			"Remove-Item $tempScriptPath"
-		);
-		new ssm.CfnAssociation(this, id, {
-			name: "AWS-RunPowerShellScript",
-			parameters: {
-				commands: commands,
-			},
-			targets: [{ key: "InstanceIds", values: [this.instance.instanceId] }],
-		});
-	}
+  runPSwithDomainAdmin(
+    psCommands: string[],
+    secret: aws_secretsmanager.ISecret,
+    id: string,
+  ) {
+    var commands = ['$onTimePS = {'];
+    psCommands.forEach((command: string) => {
+      commands.push(command);
+    });
+    commands.push(
+      '}',
+      `[string]$SecretAD  = '${secret.secretName}'`,
+      '$SecretObj = Get-SECSecretValue -SecretId $SecretAD',
+      '[PSCustomObject]$Secret = ($SecretObj.SecretString  | ConvertFrom-Json)',
+      '$password   = $Secret.Password | ConvertTo-SecureString -asPlainText -Force',
+      " $username   = $Secret.Domain + '\\' + $Secret.UserID ",
+      '$domain_admin_credential = New-Object System.Management.Automation.PSCredential($username,$password)',
+      'New-Item -ItemType Directory -Path c:\\Scripts',
+      '$tempScriptPath = "C:\\Scripts\\$PID.ps1"',
+      '$oneTimePS | set-content $tempScriptPath',
+      'Start-Process Powershell -Argumentlist "-ExecutionPolicy Bypass -NoProfile -File C:\\Scripts\\$PID.ps1" -Credential $domain_admin_credential',
+      'Remove-Item $tempScriptPath',
+    );
+    new ssm.CfnAssociation(this, id, {
+      name: 'AWS-RunPowerShellScript',
+      parameters: {
+        commands: commands,
+      },
+      targets: [{ key: 'InstanceIds', values: [this.instance.instanceId] }],
+    });
+  }
 }

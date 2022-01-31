@@ -10,26 +10,26 @@
  *  OR CONDITIONS OF ANY KIND, express or implied. See the License for the specific language governing permissions
  *  and limitations under the License.
  */
-import { App, Stack, StackProps } from "aws-cdk-lib";
-import { Construct } from "constructs";
-import { BusinessLogic } from "./businessLogic";
-import { Infrastructure } from "./infrastructure";
+import { App, Stack, StackProps } from 'aws-cdk-lib';
+import { Construct } from 'constructs';
+import { BusinessLogic } from './businessLogic';
+import { Infrastructure } from './infrastructure';
 
 export class ExampleApp extends Stack {
-	constructor(scope: Construct, id: string, props?: StackProps) {
-		super(scope, id, props);
+  constructor(scope: Construct, id: string, props?: StackProps) {
+    super(scope, id, props);
 
-		new Infrastructure(this, "infra");
-		new BusinessLogic(this, "myApp");
-	}
+    new Infrastructure(this, 'infra');
+    new BusinessLogic(this, 'myApp');
+  }
 }
 
 const app = new App();
 const cdk_props: StackProps = {
-	env: {
-		account: process.env.CDK_DEFAULT_ACCOUNT,
-		region: process.env.CDK_DEFAULT_REGION,
-	},
+  env: {
+    account: process.env.CDK_DEFAULT_ACCOUNT,
+    region: process.env.CDK_DEFAULT_REGION,
+  },
 };
 
-new ExampleApp(app, "myApp01", cdk_props);
+new ExampleApp(app, 'myApp01', cdk_props);

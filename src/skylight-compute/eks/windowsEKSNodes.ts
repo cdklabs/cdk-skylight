@@ -23,7 +23,7 @@ import {
 import { AutoScalingGroup } from "aws-cdk-lib/aws-autoscaling";
 import { Construct } from "constructs";
 
-export interface runtimeNodes {
+export interface IRuntimeNodes {
 	/**
 	 * Method to add userData to the nodes
 	 */
@@ -57,10 +57,10 @@ export interface runtimeNodes {
 	): void;
 }
 
-export class WindowsEKSNodes extends Construct implements runtimeNodes {
+export class WindowsEKSNodes extends Construct implements IRuntimeNodes {
 	readonly asg: AutoScalingGroup;
-	readonly windows_workers_role: aws_iam.Role;
-	readonly asg_resource: aws_autoscaling.CfnAutoScalingGroup;
+	readonly windowsWorkersRole: aws_iam.Role;
+	readonly asgResource: aws_autoscaling.CfnAutoScalingGroup;
 
 	constructor(
 		scope: Construct,
@@ -81,7 +81,7 @@ export class WindowsEKSNodes extends Construct implements runtimeNodes {
 				vpc: vpc,
 			}
 		);
-		this.windows_workers_role = new aws_iam.Role(
+		this.windowsWorkersRole = new aws_iam.Role(
 			this,
 			"windows-eks-workers-instance-role",
 			{
@@ -121,7 +121,7 @@ export class WindowsEKSNodes extends Construct implements runtimeNodes {
 			"WindowsInstancesCapacity",
 			{
 				vpc: vpc,
-				role: this.windows_workers_role,
+				role: this.windowsWorkersRole,
 				minCapacity: 2,
 				securityGroup: eks_security_group,
 				maxCapacity: 10,
@@ -130,7 +130,7 @@ export class WindowsEKSNodes extends Construct implements runtimeNodes {
 			}
 		);
 
-		this.asg_resource = this.asg.node.children.find(
+		this.asgResource = this.asg.node.children.find(
 			(c) =>
 				(c as CfnResource).cfnResourceType ===
 				"AWS::AutoScaling::AutoScalingGroup"
@@ -208,7 +208,7 @@ export class WindowsEKSNodes extends Construct implements runtimeNodes {
 			`powershell -File $EKSBootstrapScriptFile -EKSClusterName '${eksCluster.clusterName}`,
 		];
 		this.runPowerShellSSMDocument("EKSBootstrap", commands);
-		eksCluster.awsAuth.addRoleMapping(this.windows_workers_role, {
+		eksCluster.awsAuth.addRoleMapping(this.windowsWorkersRole, {
 			groups: [
 				"system:bootstrappers",
 				"system:nodes",
