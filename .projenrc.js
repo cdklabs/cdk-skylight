@@ -12,7 +12,7 @@ const project = new awscdk.AwsCdkConstructLibrary({
 		dotNetNamespace: "cdk-skylight",
 		packageId: "cdk-skylight",
 	},
-	java: {
+	publishToMaven: {
 		javaPackage: "cdk-skylight",
 		mavenArtifactId: "cdk-skylight",
 		mavenGroupId: "cdk-skylight",
