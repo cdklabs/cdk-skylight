@@ -1,4 +1,5 @@
 import { App, aws_ec2, Stack } from 'aws-cdk-lib';
+import { Secret } from 'aws-cdk-lib/aws-secretsmanager';
 import { WindowsEKSCluster, WindowsEKSNodes, WindowsNode } from '../src';
 
 const env = {
@@ -10,10 +11,18 @@ const stack = new Stack(app, 'test', { env: env });
 const vpc = new aws_ec2.Vpc(stack, 'vpc', {});
 
 test('Skylight-WindowsNode', () => {
-  const windowsnode = new WindowsNode(stack, 'WindowsNode', '/test', {
+  const windowsNodeObject = new WindowsNode(stack, 'WindowsNode', '/test', {
     vpc: vpc,
+    userData: 'hello',
   });
-  expect(windowsnode).toHaveProperty(
+  windowsNodeObject.runPsCommands(['echo hello world'], 'hello');
+  windowsNodeObject.runPSwithDomainAdmin(
+    ['echo hello world'],
+    new Secret(stack, 'secret'),
+    'hello-withPS',
+  );
+  windowsNodeObject.openRDP('1.1.1.1/32');
+  expect(windowsNodeObject).toHaveProperty(
     'instance.instance.cfnResourceType',
     'AWS::EC2::Instance',
   );

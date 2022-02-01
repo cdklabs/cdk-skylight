@@ -1,4 +1,5 @@
 import { aws_ec2, Stack } from 'aws-cdk-lib';
+import { Secret } from 'aws-cdk-lib/aws-secretsmanager';
 import { AdAuthentication } from '../src';
 
 test('authentication', () => {
@@ -6,6 +7,13 @@ test('authentication', () => {
   const mad = new AdAuthentication(stack, 'AdAuthentication', {
     vpc: new aws_ec2.Vpc(stack, 'vpc', {}),
     namespace: '/test',
+  });
+  new AdAuthentication(stack, 'AdAuthentication2', {
+    vpc: new aws_ec2.Vpc(stack, 'vpc2', {}),
+    namespace: '/test',
+    edition: 'enterprise',
+    secret: new Secret(stack, 'test-secret'),
+    secretName: 'custom-secret-name',
   });
   expect(mad).toHaveProperty(
     'ad.cfnResourceType',
