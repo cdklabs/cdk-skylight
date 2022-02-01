@@ -14,7 +14,7 @@
 // Imports
 import { aws_ec2, Stack, StackProps } from 'aws-cdk-lib';
 import { Construct } from 'constructs';
-import { FSxWindows } from '../../skylight-storage/fsxWindows';
+import { FSxWindows } from '../../skylight-storage/fsxwindows';
 
 export class StorageComponent extends Stack {
   constructor(

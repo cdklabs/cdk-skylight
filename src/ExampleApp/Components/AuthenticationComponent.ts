@@ -1,6 +1,6 @@
 import { aws_ec2, Stack, StackProps } from 'aws-cdk-lib';
 import { Construct } from 'constructs';
-import { AdAuthentication } from '../../skylight-authentication/adAuthentication';
+import { AdAuthentication } from '../../skylight-authentication/adauthentication';
 
 export class AuthenticationComponent extends Stack {
   constructor(

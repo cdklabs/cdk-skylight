@@ -1,11 +1,11 @@
 export {
   WindowsEKSNodes,
   IRuntimeNodes,
-} from './skylight-compute/eks/WindowsEKSNodes';
-export { WindowsEKSCluster } from './skylight-compute/eks/windowsEKSCluster';
-export { WindowsNode, IWindowsNodeProps } from './skylight-compute/windowsNode';
-export { FSxWindows, IFSxWindowsProps } from './skylight-storage/fsxWindows';
+} from './skylight-compute/eks/windowseksnodes';
+export { WindowsEKSCluster } from './skylight-compute/eks/windowsekscluster';
+export { WindowsNode, IWindowsNodeProps } from './skylight-compute/windowsnode';
+export { FSxWindows, IFSxWindowsProps } from './skylight-storage/fsxwindows';
 export {
   AdAuthentication,
   IADAuthenticationProps,
-} from './skylight-authentication/adAuthentication';
+} from './skylight-authentication/adauthentication';

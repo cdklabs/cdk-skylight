@@ -6,8 +6,8 @@ import {
   StackProps,
 } from 'aws-cdk-lib';
 import { Construct } from 'constructs';
-import { WindowsEKSCluster } from '../../skylight-compute/eks/windowsEKSCluster';
-import { WindowsEKSNodes } from '../../skylight-compute/eks/windowsEKSNodes';
+import { WindowsEKSCluster } from '../../skylight-compute/eks/windowsekscluster';
+import { WindowsEKSNodes } from '../../skylight-compute/eks/windowseksnodes';
 
 export class ComputeComponent extends Stack {
   constructor(
