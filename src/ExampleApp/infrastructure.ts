@@ -11,20 +11,20 @@
  *  and limitations under the License.
  */
 
-import { aws_ec2, Stack, StackProps } from 'aws-cdk-lib';
-import { Construct } from 'constructs';
-import { AuthenticationComponent } from './Components/AuthenticationComponent';
-import { ComputeComponent } from './Components/ComputeComponent';
-import { StorageComponent } from './Components/StorageComponent';
+import { aws_ec2, Stack, StackProps } from "aws-cdk-lib";
+import { Construct } from "constructs";
+import { AuthenticationComponent } from "./Components/AuthenticationComponent";
+import { ComputeComponent } from "./Components/ComputeComponent";
+import { StorageComponent } from "./Components/StorageComponent";
 
 export class Infrastructure extends Stack {
-  constructor(scope: Construct, id: string, props?: StackProps) {
-    super(scope, id, props);
-    const namespace = '/exampleApp01';
+	constructor(scope: Construct, id: string, props?: StackProps) {
+		super(scope, id, props);
+		const namespace = "/exampleApp01";
 
-    const vpc = new aws_ec2.Vpc(this, 'myVPC');
-    new AuthenticationComponent(this, 'Auth', namespace, vpc, props);
-    new StorageComponent(this, 'Storage', namespace, vpc, props);
-    new ComputeComponent(this, 'Cluster', namespace, vpc, props);
-  }
+		const vpc = new aws_ec2.Vpc(this, "myVPC");
+		new AuthenticationComponent(this, "Auth", namespace, vpc, props);
+		new StorageComponent(this, "Storage", namespace, vpc, props);
+		new ComputeComponent(this, "Cluster", namespace, vpc, props);
+	}
 }

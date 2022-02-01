@@ -15,9 +15,6 @@
 import { aws_ec2, aws_eks, aws_iam, aws_ssm } from 'aws-cdk-lib';
 import { Construct } from 'constructs';
 
-const fs = require('fs');
-const yaml = require('js-yaml');
-
 export class WindowsEKSCluster extends Construct {
   readonly eksCluster: aws_eks.Cluster;
   readonly vpc: aws_ec2.IVpc;
@@ -71,15 +68,18 @@ export class WindowsEKSCluster extends Construct {
     });
 
     // https://docs.aws.amazon.com/eks/latest/userguide/windows-support.html#enable-windows-support
-    this.eksCluster.addManifest(
-      'WindowsSupport',
-      yaml.load(
-        fs.readFileSync(
-          './src/skylight-compute/eks/windows-support.yaml',
-          'utf8',
-        ),
-      ),
-    );
+    const yaml_file = {
+      apiVersion: 'v1',
+      kind: 'ConfigMap',
+      metadata: {
+        name: 'amazon-vpc-cni',
+        namespace: 'kube-system',
+      },
+      data: {
+        'enable-windows-ipam': 'true',
+      },
+    };
+    this.eksCluster.addManifest('WindowsSupport', yaml_file);
 
     new aws_ssm.StringParameter(this, 'secretName', {
       parameterName: `/${namespace}/secretName`,
