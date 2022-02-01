@@ -8,6 +8,7 @@ const project = new awscdk.AwsCdkConstructLibrary({
 	repositoryUrl: "https://github.com/cdklabs/cdk-skylight.git",
 	peerDeps: ["constructs", "aws-cdk-lib"],
 	releaseToNpm: true,
+	gitignore: [".DS_Store"],
 	dotnet: {
 		dotNetNamespace: "cdk-skylight",
 		packageId: "cdk-skylight",
