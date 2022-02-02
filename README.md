@@ -1,28 +1,43 @@
 # CDK Skylight
 
-CDK Skylight is a set of code libraries written with AWS CDK that enables customers to create, provision highly reliable, highly scalable, cost-effective applications in the cloud without worrying about creating and configuring the underlying AWS infrastructure. 
+CDK Skylight is a set of code libraries written with AWS CDK that enables customers to create provision highly reliable, highly scalable, cost-effective **enterprise applications** in the cloud without worrying about creating and configuring the underlying AWS infrastructure.
 
-For example, with CDK Skylight, developers don't need to understand how to integrate Active Directory with Amazon FSx. Instead, they can safely consume a library that handles those parts for them. With CDK Skylight, developers focus their time and energy on developing features that matter to their business.
+Enterprise applications often require a particular skill set and tailored configuration to integrate components. CDK Skylight is set to address repetitive tasks and best practices involved with managing, deploying, and integrating those apps.
 
-CDK Skylight helps in all application lifecycle stages, starting from the developer machine to running production workloads. With CDK Skylight, the time it takes to move between stages and integrate new services is reduced dramatically. With CDK Skylight customer can easily encapsulate AWS best practices in their infrastructure definition.
+Today, applications that require Active Directory rely on different teams that handle this part. Therefore, the integration between the application and the Active Directory happens in a dedicated environment. With CDK Skylight, the Active Directory's team owner can provide a custom stack using a pre-defined stack to the teams relying on this Component, allowing the application owner to build the same configuration in the developer account.
+## Who should use CDK Skylight?
+The primary persona to use CDK Skylight is the infrastructure team owners to customize the stacks and provide them to the application owners teams.
 
+The Active Directory component always comes with DNS topology, and the best practice is to use Route 53 Resolver rules. With CDK Skylight, the infrastructure owner can customize the stack with simple APIs and focus their time and energy on developing features that matter to their business.
 
-## Example Application
-With CDK Skylight, you can build complex integration. In this Example Application, CDK-Skylight libraries are written in decoupled topology, allowing me to choose each Component's technology.
+## When to use CDK Skylight?
+
+CDK Skylight aims to help in all application lifecycle stages, from the developer machine to running production workloads. According to AWS Well-Architected Framework, the proposed project structure below allows dividing the CI/CD pipelines into call-based architecture.
+
+With CDK Skylight, the time it takes to move between stages and integrate new services is reduced dramatically. In addition, with CDK Skylight, customers can easily encapsulate AWS best practices in their infrastructure definition.
+
+## Proposed Project Structure
 
 A generic application will have Infrastructure and Business Stacks.
-The Infrastructure Stack will usually contain logic  Authentication, Storage, and Compute Layer. Inside each Component, the technical decisions will be made. 
 
-![](/static/images/screenshots/2022-02-01-19-17-04.png?classes=border,shadow)
+In the Infrastructure Stack, we will have the common-used components, such as Authentication, Storage, and Compute layers. Inside each Component, the technical decisions will be made. We want to avoid making technical decisions such as which Storage solution to use, and it can be "Amazon FSx for Windows" or "Amazon FSx for NetApp ONTAP." For example, in the Storage component, we will define the integrations, the parameters, and the methods, allowing us to change the technology if we want to.
 
-For production workloads we recommend split components to different CloudFormations Stacks, AWS Accounts and separate CI/CD pipeline, as followed:
+![](static/images/screenshots/2022-02-01-19-17-04.png?classes=border,shadow)
 
-![](/static/images/screenshots/2022-02-01-19-18-20.png?classes=border,shadow)
+For production workloads, we recommend split components to different CloudFormations Stacks, AWS Accounts, and separate CI/CD pipelines, as follows:
 
-In this example, the Authentication will use Active Directory, the Compute will be Kubernetes cluster, and the Storage is SMB using Amazon FSx, here is the full architecture
+![](static/images/screenshots/2022-02-01-19-18-20.png?classes=border,shadow)
 
-![](/static/images/screenshots/2022-02-01-19-20-47.png?classes=border,shadow)
+Inside each Component, we will make the technical decisions and implementation.
 
+Let's look at the complete application to understand how it will look in practice.
+## Example Application
+
+With CDK Skylight, you can build complex integration. As CDK-Skylight libraries are written in decoupled topology, allowing me to choose each Component's technology, in this Example Application, we prefer a very-complex integration: **Windows nodes on EKS with domain-joined machines and SMB with Global-Mapping**.
+
+In this example, the Authentication will use Active Directory, the Compute will be Kubernetes cluster, and the Storage is SMB using Amazon FSx. Here is the whole architecture
+
+![](static/images/screenshots/2022-02-01-19-20-47.png?classes=border,shadow)
 ## Infrastructure Stack
 
 ```typescript
