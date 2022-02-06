@@ -1,4 +1,5 @@
 const { awscdk } = require('projen');
+
 const project = new awscdk.AwsCdkConstructLibrary({
   author: 'Dudu (David) Twizer',
   authorAddress: 'dudut@amazon.com',
@@ -9,23 +10,23 @@ const project = new awscdk.AwsCdkConstructLibrary({
   peerDeps: ['constructs', 'aws-cdk-lib'],
   releaseToNpm: true,
   gitignore: ['.DS_Store'],
-  dotnet: {
-    dotNetNamespace: 'cdk-skylight',
-    packageId: 'cdk-skylight',
+
+  publishToNuget: {
+    dotNetNamespace: 'Cdk.Skylight',
+    packageId: 'Cdk.Skylight',
   },
+
   publishToMaven: {
     javaPackage: 'cdk-skylight',
     mavenArtifactId: 'cdk-skylight',
     mavenGroupId: 'cdk-skylight',
     repositoryUrl: 'https://maven.pkg.github.com/cdklabs/cdk-skylight.git',
   },
-  python: {
+
+  publishToPypi: {
     distName: 'cdk-skylight',
     module: 'cdk-skylight',
   },
-  // deps: [],                /* Runtime dependencies of this module. */
-  // description: undefined,  /* The description is just a string that helps people understand the purpose of the package. */
-  // devDeps: [],             /* Build dependencies for this module. */
-  // packageName: undefined,  /* The "name" in package.json. */
 });
+
 project.synth();

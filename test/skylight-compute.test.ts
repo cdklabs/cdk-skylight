@@ -1,6 +1,6 @@
 import { App, aws_ec2, Stack } from 'aws-cdk-lib';
 import { Secret } from 'aws-cdk-lib/aws-secretsmanager';
-import { WindowsEKSCluster, WindowsEKSNodes, WindowsNode } from '../src';
+import * as skylight from '../src';
 
 const env = {
   account: '1111111111',
@@ -11,7 +11,7 @@ const stack = new Stack(app, 'test', { env: env });
 const vpc = new aws_ec2.Vpc(stack, 'vpc', {});
 
 test('Skylight-WindowsNode', () => {
-  const windowsNodeObject = new WindowsNode(stack, 'WindowsNode', '/test', {
+  const windowsNodeObject = new skylight.compute.WindowsNode(stack, 'WindowsNode', '/test', {
     vpc: vpc,
     userData: 'hello',
   });
@@ -30,7 +30,7 @@ test('Skylight-WindowsNode', () => {
 
 //EKS
 test('Skylight-WindowsEKSNodes', () => {
-  const nodes = new WindowsEKSNodes(
+  const nodes = new skylight.compute.WindowsEKSNodes(
     stack,
     'WindowsEKSNodes',
     vpc,
@@ -43,6 +43,6 @@ test('Skylight-WindowsEKSNodes', () => {
 });
 
 test('Skylight-WindowsEKSCluster', () => {
-  const cluster = new WindowsEKSCluster(stack, 'ElasticCluster', vpc, '/test');
+  const cluster = new skylight.compute.WindowsEKSCluster(stack, 'ElasticCluster', vpc, '/test');
   expect(cluster).toHaveProperty('eksCluster.clusterName');
 });

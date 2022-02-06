@@ -1,14 +1,14 @@
 import { aws_ec2, Stack } from 'aws-cdk-lib';
 import { Secret } from 'aws-cdk-lib/aws-secretsmanager';
-import { AdAuthentication } from '../src';
+import * as skylight from '../src';
 
 test('authentication', () => {
   const stack = new Stack();
-  const mad = new AdAuthentication(stack, 'AdAuthentication', {
+  const mad = new skylight.authentication.AdAuthentication(stack, 'AdAuthentication', {
     vpc: new aws_ec2.Vpc(stack, 'vpc', {}),
     namespace: '/test',
   });
-  new AdAuthentication(stack, 'AdAuthentication2', {
+  new skylight.authentication.AdAuthentication(stack, 'AdAuthentication2', {
     vpc: new aws_ec2.Vpc(stack, 'vpc2', {}),
     namespace: '/test',
     edition: 'enterprise',
