@@ -10,6 +10,12 @@ const project = new awscdk.AwsCdkConstructLibrary({
 	peerDeps: ["constructs", "aws-cdk-lib"],
 	gitignore: [".DS_Store"],
 
+	autoApproveOptions: {
+		allowedUsernames: ["aws-cdk-automation"],
+		secret: "GITHUB_TOKEN",
+	},
+	autoApproveUpgrades: true,
+
 	releaseToNpm: true,
 
 	// publishToNuget: {
