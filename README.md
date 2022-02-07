@@ -1,18 +1,24 @@
-# CDK Skylight
+# What is it?
 
-CDK Skylight is a set of code libraries written with AWS CDK that enables customers to create provision highly reliable, highly scalable, cost-effective **enterprise applications** in the cloud without worrying about creating and configuring the underlying AWS infrastructure.
+CDK Skylight is a set of code libraries written with AWS CDK that enables customers to create & provision highly reliable, scalable, and cost-effective applications within the **Microsoft products ecosystem** without worrying about creating and configuring the underlying AWS infrastructure components. *(Such as .NET Workloads, Active Directory, SQL Server, NetApp ONTap).* 
 
-Enterprise applications often require a particular skill set and tailored configuration to integrate components. CDK Skylight is set to address repetitive tasks and best practices involved with managing, deploying, and integrating those apps.
+CDK Skylight is set to address repetitive tasks and best practices involved with managing, deploying, and integrating those apps. 
 
+In addition to the complexity of integrating the "aws side" products, Microsoft technologies such as SQL, AD, Windows OS require OS-level integration and optimization. Skylight help in both the "aws-side" and the "os-side," offering a complete end-to-end configuration and integration solution of AWS products. 
+
+Using Skylight libraries, Solutions Architects and Service teams can create sophisticated solutions in the form of code objects. The result is that instead of explaining how to do something, customers can safely consume the constructed solution.
+
+Example:
 Today, applications that require Active Directory rely on different teams that handle this part. Therefore, the integration between the application and the Active Directory happens in a dedicated environment. With CDK Skylight, the Active Directory's team owner can provide a custom stack using a pre-defined stack to the teams relying on this Component, allowing the application owner to build the same configuration in the developer account.
+
 ## Who should use CDK Skylight?
+
 The primary persona to use CDK Skylight is the infrastructure team owners to customize the stacks and provide them to the application owners teams.
 
 The Active Directory component always comes with DNS topology, and the best practice is to use Route 53 Resolver rules. With CDK Skylight, the infrastructure owner can customize the stack with simple APIs and focus their time and energy on developing features that matter to their business.
-
 ## When to use CDK Skylight?
 
-CDK Skylight aims to help in all application lifecycle stages, from the developer machine to running production workloads. According to AWS Well-Architected Framework, the proposed project structure below allows dividing the CI/CD pipelines into call-based architecture.
+CDK Skylight aims to help in all application lifecycle stages, from the developer’s machine to production environments. According to AWS Well-Architected Framework, the proposed project structure below allows dividing the CI/CD pipelines into call-based architecture.
 
 With CDK Skylight, the time it takes to move between stages and integrate new services is reduced dramatically. In addition, with CDK Skylight, customers can easily encapsulate AWS best practices in their infrastructure definition.
 
