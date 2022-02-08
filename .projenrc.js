@@ -10,7 +10,7 @@ const project = new awscdk.AwsCdkConstructLibrary({
 	peerDeps: ["constructs", "aws-cdk-lib"],
 	gitignore: [".DS_Store"],
 
-	releaseToNpm: false,
+	releaseToNpm: true,
 
 	// publishToNuget: {
 	//   dotNetNamespace: 'Cdklabs.Skylight',
