@@ -9,7 +9,7 @@ In addition to the complexity of integrating the "AWS side" products, Microsoft 
 
 The primary persona to use CDK Skylight is the infrastructure team owners to customize the stacks and provide them to the application owners teams.
 
-For applications that require Active Directory , the application team relies on different teams that handle this part. Therefore, the integration between the application and the Active Directory happens in a dedicated environment. With CDK Skylight, the Active Directory's team owner can provide a custom stack using a pre-defined stack to the teams relying on this Component, allowing the application owner to build the same configuration in the developer account.
+For applications that require Active Directory, the application team relies on different teams that handle this part. Therefore, the integration between the application and the Active Directory happens in a dedicated environment. With CDK Skylight, the Active Directory's team owner can provide a custom stack using a pre-defined stack to the teams relying on this Component, allowing the application owner to build the same configuration in the developer account.
 
 # When to use CDK Skylight?
 
@@ -40,7 +40,7 @@ Library of Custom Authentication components
 ### **AdAuthentication** - Manged Active Directory with R53 Resolvers 
 
 This construct creates Amazon VPC, Amazon Managed AD, Secret for the domain Admin stored in Secrets Manager and Route 53 forward rule for the domain.
-The construct provides way to customize configuration and smart defaults for the infrastructures.
+The construct provides a way to customize the configuration and smart defaults for the infrastructures.
 
 Example:
 
@@ -62,7 +62,7 @@ Library of Custom Compute components
 
 ### WindowsNode - Windows Generic Worker
 
-The stack creates Windows Server with the latest AMI and joined the machine to the domain. It is possible to send Powershell commands or connect and work from the machine. 
+The stack creates Windows Server with the latest AMI and joins the machine to the domain. It is possible to send Powershell commands or connect and work from the machine. 
 
 ```typescript
 const windowsNodeObject = new WindowsNode(stack, 'WindowsNode', '/test', {
@@ -90,7 +90,7 @@ const cluster = new WindowsEKSCluster(stack, "ElasticCluster", vpc, "/test") // 
 
 ### EKS Nodes
 
-This stack take the PersistentStorage stack as input and creates the EKS cluster with permissions to operate EKS clusters.
+This stack takes the PersistentStorage stack as input and creates the EKS cluster with permissions to operate EKS clusters.
 
 ```typescript
 const myNodes = new WindowsEKSNodes( // Creates AutoScaling group for Windows Support
