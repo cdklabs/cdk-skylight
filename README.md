@@ -48,10 +48,8 @@ Example:
 const stack = new Stack();
 new AdAuthentication(stack, 'AdAuthentication', {
 	vpc: new aws_ec2.Vpc(stack, 'MyVpc', {}),
-	namespace: '/test',
 	domainName: "skylight.aws",
 	edition: 'enterprise',
-	secret: new Secret(stack, 'test-secret'),
 	secretName: 'skylight.aws-secret',
 });
 ```
@@ -65,8 +63,8 @@ Library of Custom Compute components
 The stack creates Windows Server with the latest AMI and joins the machine to the domain. It is possible to send Powershell commands or connect and work from the machine. 
 
 ```typescript
-const windowsNodeObject = new WindowsNode(stack, 'WindowsNode', '/test', {
-	vpc: vpc,
+const windowsNodeObject = new WindowsNode(stack, 'WindowsNode', {
+	vpc: new aws_ec2.Vpc(stack, 'MyVpc', {}),
 	userData: 'echo "hello-world"',
 });
 windowsNodeObject.runPsCommands(['echo hello world'], 'hello-world'); // ability to run PS commands after launch (With SSM document)
@@ -85,7 +83,7 @@ The stack creates the Windows Autoscaling group with domain join script and the 
 ### EKS Cluster
 
 ```typescript
-const cluster = new WindowsEKSCluster(stack, "ElasticCluster", vpc, "/test") // Creates EKS Cluster with Windows support
+const cluster = new WindowsEKSCluster(stack, "ElasticCluster" , { vpc : new aws_ec2.Vpc(stack, 'MyVpc', {})}) // Creates EKS Cluster with Windows support
 ```
 
 ### EKS Nodes
@@ -96,8 +94,9 @@ This stack takes the PersistentStorage stack as input and creates the EKS cluste
 const myNodes = new WindowsEKSNodes( // Creates AutoScaling group for Windows Support
     stack,
     'WindowsEKSNodes',
-    vpc,
-    new aws_ec2.InstanceType('m5.large'),
+    {
+		vpc: new aws_ec2.Vpc(stack, 'MyVpc', {})
+	}
   )
 
 myNodes.addAdDependency(secretObject);
