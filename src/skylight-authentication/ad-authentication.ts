@@ -13,134 +13,145 @@
 
 // Imports
 import {
-  aws_directoryservice as mad,
-  aws_ec2 as ec2,
-  aws_route53resolver as r53resolver,
-  aws_secretsmanager as secretsmanager,
-  CfnOutput,
-  Fn,
-} from 'aws-cdk-lib';
-import { Construct } from 'constructs';
+	aws_directoryservice as mad,
+	aws_ec2 as ec2,
+	aws_route53resolver as r53resolver,
+	aws_secretsmanager as secretsmanager,
+	aws_ssm,
+	CfnOutput,
+	Fn,
+} from "aws-cdk-lib";
+import { Construct } from "constructs";
 /**
  * The properties for the AdAuthentication class.
  */
 export interface IADAuthenticationProps {
-  /**
+	/**
 	 * The domain name for the Active Directory Domain.
 	 *
 	 * @default - 'domain.aws'.
 	 */
-  domainName?: string;
-  /**
+	domainName?: string;
+	/**
 	 * The edition to use for the Active Directory Domain.
 	 * Allowed values: Enterprise | Standard
 	 * https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-directoryservice-microsoftad.html#cfn-directoryservice-microsoftad-edition
 	 * @default - 'Standard'.
 	 */
-  edition?: string;
-  /**
+	edition?: string;
+	/**
 	 * The secrets manager secret to use must be in format:
 	 * '{Domain: <domain.name>, UserID: 'Admin', Password: '<password>'}'
 	 * @default - 'Randomly generated and stored in Secret Manager'.
 	 */
-  secret?: secretsmanager.ISecret;
-  /**
+	secret?: secretsmanager.ISecret;
+	/**
 	 * The name of the secret to save once generated or stored
 	 * @default - 'Domain name + Secret'.
 	 */
-  secretName?: string;
-  /**
+	secretName?: string;
+	/**
 	 * The VPC to use, must have private subnets.
 	 */
-  vpc: ec2.IVpc;
-  /**
+	vpc: ec2.IVpc;
+	/**
 	 * The SSM namespace to save parameters to
+	 * @default - 'cdk-skylight'.
 	 */
-  namespace: string;
+	namespace?: string;
 }
 
 export class AdAuthentication extends Construct {
-  readonly secret: secretsmanager.ISecret;
-  readonly ad: mad.CfnMicrosoftAD;
+	readonly secret: secretsmanager.ISecret;
+	readonly ad: mad.CfnMicrosoftAD;
+	static ssm_parameters = {
+		secretName: "managed-ad-secretName",
+	};
 
-  constructor(scope: Construct, id: string, props: IADAuthenticationProps) {
-    super(scope, id);
-    props.domainName = props.domainName ?? 'domain.aws';
-    props.edition = props.edition ?? 'Standard';
-    props.secretName = props.secretName ?? `${props.domainName}-secret`;
-    this.secret =
+	constructor(scope: Construct, id: string, props: IADAuthenticationProps) {
+		super(scope, id);
+		props.domainName = props.domainName ?? "domain.aws";
+		props.edition = props.edition ?? "Standard";
+		props.secretName = props.secretName ?? `${props.domainName}-secret`;
+		props.namespace = props.namespace ?? "cdk-skylight";
+		this.secret =
 			props.secret ??
 			new secretsmanager.Secret(this, `${id}-${props.domainName}-secret`, {
-			  generateSecretString: {
-			    secretStringTemplate: JSON.stringify({
-			      Domain: props.domainName,
-			      UserID: 'Admin',
-			    }),
-			    generateStringKey: 'Password',
-			    excludePunctuation: true,
-			  },
-			  secretName: props.secretName,
+				generateSecretString: {
+					secretStringTemplate: JSON.stringify({
+						Domain: props.domainName,
+						UserID: "Admin",
+					}),
+					generateStringKey: "Password",
+					excludePunctuation: true,
+				},
+				secretName: props.secretName,
 			});
 
-    const subnets = props.vpc.selectSubnets({
-      subnetType: ec2.SubnetType.PRIVATE_WITH_NAT,
-    });
+		new aws_ssm.StringParameter(this, "ssm-dns-fsxEndpoint", {
+			parameterName: `/${props.namespace}/${AdAuthentication.ssm_parameters.secretName}`,
+			stringValue: props.secretName,
+		});
 
-    new CfnOutput(this, id + '-SSM-GetSecret', {
-      value: `aws secretsmanager get-secret-value --secret-id ${
-        this.secret.secretArn
-      } --query SecretString --output text --region ${'region'}`, //need to fix the region
-    });
+		const subnets = props.vpc.selectSubnets({
+			subnetType: ec2.SubnetType.PRIVATE_WITH_NAT,
+		});
 
-    this.ad = new mad.CfnMicrosoftAD(this, id + '-managedDirectoryObject', {
-      password: this.secret.secretValueFromJson('Password').toString(),
-      edition: props.edition,
-      name: props.domainName,
-      vpcSettings: {
-        subnetIds: [subnets.subnetIds[0], subnets.subnetIds[1]],
-        vpcId: props.vpc.vpcId,
-      },
-    });
+		new CfnOutput(this, id + "-SSM-GetSecret", {
+			value: `aws secretsmanager get-secret-value --secret-id ${
+				this.secret.secretArn
+			} --query SecretString --output text --region ${"region"}`, //need to fix the region
+		});
 
-    const sg = new ec2.SecurityGroup(this, id + '-r53-outbound-Resolver-SG', {
-      vpc: props.vpc,
-    });
-    sg.addIngressRule(ec2.Peer.ipv4(props.vpc.vpcCidrBlock), ec2.Port.udp(53));
-    sg.addIngressRule(ec2.Peer.ipv4(props.vpc.vpcCidrBlock), ec2.Port.tcp(53));
+		this.ad = new mad.CfnMicrosoftAD(this, id + "-managedDirectoryObject", {
+			password: this.secret.secretValueFromJson("Password").toString(),
+			edition: props.edition,
+			name: props.domainName,
+			vpcSettings: {
+				subnetIds: [subnets.subnetIds[0], subnets.subnetIds[1]],
+				vpcId: props.vpc.vpcId,
+			},
+		});
 
-    const outBoundResolver = new r53resolver.CfnResolverEndpoint(
-      this,
-      id + '-r53-endpoint',
-      {
-        direction: 'OUTBOUND',
-        ipAddresses: subnets.subnetIds.map((s) => {
-          return { subnetId: s };
-        }),
-        securityGroupIds: [sg.securityGroupId],
-      },
-    );
+		const sg = new ec2.SecurityGroup(this, id + "-r53-outbound-Resolver-SG", {
+			vpc: props.vpc,
+		});
+		sg.addIngressRule(ec2.Peer.ipv4(props.vpc.vpcCidrBlock), ec2.Port.udp(53));
+		sg.addIngressRule(ec2.Peer.ipv4(props.vpc.vpcCidrBlock), ec2.Port.tcp(53));
 
-    const resolverRules = new r53resolver.CfnResolverRule(
-      this,
-      id + '-r53-resolver-rules',
-      {
-        domainName: props.domainName,
-        resolverEndpointId: outBoundResolver.ref,
-        ruleType: 'FORWARD',
-        targetIps: [
-          { ip: Fn.select(0, this.ad.attrDnsIpAddresses) },
-          { ip: Fn.select(1, this.ad.attrDnsIpAddresses) },
-        ],
-      },
-    );
+		const outBoundResolver = new r53resolver.CfnResolverEndpoint(
+			this,
+			id + "-r53-endpoint",
+			{
+				direction: "OUTBOUND",
+				ipAddresses: subnets.subnetIds.map((s) => {
+					return { subnetId: s };
+				}),
+				securityGroupIds: [sg.securityGroupId],
+			}
+		);
 
-    new r53resolver.CfnResolverRuleAssociation(
-      this,
-      id + '-r53-resolver-association',
-      {
-        resolverRuleId: resolverRules.attrResolverRuleId,
-        vpcId: props.vpc.vpcId,
-      },
-    );
-  }
+		const resolverRules = new r53resolver.CfnResolverRule(
+			this,
+			id + "-r53-resolver-rules",
+			{
+				domainName: props.domainName,
+				resolverEndpointId: outBoundResolver.ref,
+				ruleType: "FORWARD",
+				targetIps: [
+					{ ip: Fn.select(0, this.ad.attrDnsIpAddresses) },
+					{ ip: Fn.select(1, this.ad.attrDnsIpAddresses) },
+				],
+			}
+		);
+
+		new r53resolver.CfnResolverRuleAssociation(
+			this,
+			id + "-r53-resolver-association",
+			{
+				resolverRuleId: resolverRules.attrResolverRuleId,
+				vpcId: props.vpc.vpcId,
+			}
+		);
+	}
 }
