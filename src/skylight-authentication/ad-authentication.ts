@@ -60,10 +60,16 @@ export interface IADAuthenticationProps {
 }
 export interface IAdAuthenticationParameters {
   /**
-	 * The name of the SSM Object that contain the secret name in Secrets Manager
+	 * The name of the SSM Object that contains the secret name in Secrets Manager
 	 * @default - 'domain-secret'.
 	 */
   secretPointer?: string;
+
+  /**
+	 * The name of the SSM Object that contains the Directory ID
+	 * @default - 'directoryID'.
+	 */
+  directoryIDPointer?: string;
 
   /**
 	 * The SSM namespace to read/write parameters to
@@ -85,8 +91,11 @@ export class AdAuthentication extends Construct {
     this.ssmParameters.secretPointer =
 			this.ssmParameters.secretPointer ?? 'domain-secret';
 
+    this.ssmParameters.directoryIDPointer =
+			this.ssmParameters.directoryIDPointer ?? 'directoryID';
+
     if (this.ssmParameters.namespace) {
-      this.ssmParameters.namespace = `${this.ssmParameters.namespace}/compute/eks`;
+      this.ssmParameters.namespace = `${this.ssmParameters.namespace}/authentication/mad`;
     } else {
       this.ssmParameters.namespace = 'cdk-skylight/authentication/mad';
     }
@@ -133,6 +142,11 @@ export class AdAuthentication extends Construct {
         },
       },
     );
+
+    new aws_ssm.StringParameter(this, 'mad-directoryID-pointer', {
+      parameterName: `/${this.ssmParameters.namespace}/${this.ssmParameters.directoryIDPointer}`,
+      stringValue: this.adObject.logicalId,
+    });
 
     const sg = new ec2.SecurityGroup(this, id + '-r53-outbound-Resolver-SG', {
       vpc: props.vpc,
