@@ -59,14 +59,25 @@ export interface IADAuthenticationProps {
 	 * @default - 'cdk-skylight'.
 	 */
 	namespace?: string;
-}
 
+	ssmParameters?: IAdAuthenticationParameters;
+}
+export interface IAdAuthenticationParameters {
+	/**
+	 * The secret name to save the Domain Admin object
+	 * @default - 'managed-ad-secretName'.
+	 */
+	secretName?: string;
+
+	/**
+	 * The SSM namespace to read/write parameters to
+	 * @default - 'cdk-skylight'.
+	 */
+	namespace?: string;
+}
 export class AdAuthentication extends Construct {
 	readonly secret: secretsmanager.ISecret;
 	readonly ad: mad.CfnMicrosoftAD;
-	static ssm_parameters = {
-		secretName: "managed-ad-secretName",
-	};
 
 	constructor(scope: Construct, id: string, props: IADAuthenticationProps) {
 		super(scope, id);
@@ -74,6 +85,12 @@ export class AdAuthentication extends Construct {
 		props.edition = props.edition ?? "Standard";
 		props.secretName = props.secretName ?? `${props.domainName}-secret`;
 		props.namespace = props.namespace ?? "cdk-skylight";
+		props.ssmParameters = props.ssmParameters ?? {};
+		props.ssmParameters.secretName == props.ssmParameters.secretName ??
+			"managed-ad-secretName";
+		props.ssmParameters.namespace =
+			props.ssmParameters.namespace ?? props.namespace;
+
 		this.secret =
 			props.secret ??
 			new secretsmanager.Secret(this, `${id}-${props.domainName}-secret`, {
@@ -89,7 +106,7 @@ export class AdAuthentication extends Construct {
 			});
 
 		new aws_ssm.StringParameter(this, "ssm-dns-fsxEndpoint", {
-			parameterName: `/${props.namespace}/${AdAuthentication.ssm_parameters.secretName}`,
+			parameterName: `/${props.namespace}/${props.ssmParameters.secretName}`,
 			stringValue: props.secretName,
 		});
 

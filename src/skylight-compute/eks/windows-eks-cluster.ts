@@ -14,7 +14,7 @@
 // Imports
 import { aws_ec2, aws_eks, aws_iam, aws_ssm } from "aws-cdk-lib";
 import { Construct } from "constructs";
-import { AdAuthentication } from "../../skylight-authentication";
+import { IAdAuthenticationParameters } from "../../skylight-authentication";
 
 export interface WindowsEKSClusterProps {
 	/**
@@ -24,6 +24,12 @@ export interface WindowsEKSClusterProps {
 	namespace?: string;
 
 	vpc: aws_ec2.IVpc;
+
+	/**
+	 * The Managed AD Parameter store to use
+	 * @default - 'No default'.
+	 */
+	mad_ssm_parameters: IAdAuthenticationParameters;
 }
 
 export class WindowsEKSCluster extends Construct {
@@ -86,7 +92,7 @@ export class WindowsEKSCluster extends Construct {
 		this.eksCluster.addManifest("WindowsSupport", yaml_file);
 
 		new aws_ssm.StringParameter(this, "secretName", {
-			parameterName: `/${props.namespace}/${AdAuthentication.ssm_parameters.secretName}`,
+			parameterName: `/${props.mad_ssm_parameters.namespace}/${props.mad_ssm_parameters.secretName}`,
 			stringValue: this.eksCluster.clusterName,
 		});
 	}

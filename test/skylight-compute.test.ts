@@ -17,6 +17,7 @@ test("Skylight-WindowsNode", () => {
 		{
 			vpc: vpc,
 			userData: "hello",
+			mad_ssm_parameters: {},
 		}
 	);
 	windowsNodeObject.runPsCommands(["echo hello world"], "hello");
@@ -49,6 +50,7 @@ test("Skylight-WindowsEKSCluster", () => {
 		"ElasticCluster",
 		{
 			vpc: vpc,
+			mad_ssm_parameters: {},
 		}
 	);
 	expect(cluster).toHaveProperty("eksCluster.clusterName");

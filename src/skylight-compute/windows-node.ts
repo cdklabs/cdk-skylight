@@ -20,7 +20,7 @@ import {
 	aws_ssm,
 } from "aws-cdk-lib";
 import { Construct } from "constructs";
-import { AdAuthentication } from "../skylight-authentication";
+import { IAdAuthenticationParameters } from "../skylight-authentication";
 
 /**
  * The properties for the WindowsNode class.
@@ -63,6 +63,12 @@ export interface IWindowsNodeProps {
 	 * @default - 'cdk-skylight'.
 	 */
 	namespace?: string;
+
+	/**
+	 * The Managed AD Parameter store to use
+	 * @default - 'No default'.
+	 */
+	mad_ssm_parameters: IAdAuthenticationParameters;
 }
 
 /**
@@ -89,7 +95,7 @@ export class WindowsNode extends Construct {
 
 		const secretName = aws_ssm.StringParameter.valueForStringParameter(
 			this,
-			`/${props.namespace}/${AdAuthentication.ssm_parameters.secretName}`
+			`/${props.mad_ssm_parameters.namespace}/${props.mad_ssm_parameters.secretName}`
 		);
 
 		const secret = aws_secretsmanager.Secret.fromSecretNameV2(
