@@ -224,6 +224,10 @@ export class WindowsEKSNodes extends Construct implements IRuntimeNodes {
       '# Create a scheduled task on startup to execute the mapping',
       "$action = New-ScheduledTaskAction -Execute 'Powershell.exe' -Argument 'c:\\scripts\\bootfix.ps1'",
       '$trigger =  New-ScheduledTaskTrigger -AtStartup',
+      ` [string]$SecretAD  = '${secretName}'`,
+      ' $SecretObj = Get-SECSecretValue -SecretId $SecretAD',
+      ' [PSCustomObject]$Secret = ($SecretObj.SecretString  | ConvertFrom-Json)',
+      " $username   = $Secret.UserID + '@' + $Secret.Domain",
       "Register-ScheduledTask -Action $action -Trigger $trigger -TaskName 'SmbGlobalMapping' -Description 'Mapping the SMB share and adding machine to gMSA' -RunLevel Highest -User $username -Password $Secret.Password",
       '# Running the boot fix once',
       '& $bootfix',
@@ -236,7 +240,7 @@ export class WindowsEKSNodes extends Construct implements IRuntimeNodes {
     const commands = [
       '# Joining EKS Cluster',
       "[string]$EKSBootstrapScriptFile = 'C:\\Program Files\\Amazon\\EKS\\Start-EKSBootstrap.ps1'",
-      `powershell -File $EKSBootstrapScriptFile -EKSClusterName '${eksCluster.clusterName}`,
+      `powershell -File $EKSBootstrapScriptFile -EKSClusterName '${eksCluster.clusterName}'`,
     ];
     this.runPowerShellSSMDocument('EKSBootstrap', commands);
     eksCluster.awsAuth.addRoleMapping(this.windowsWorkersRole, {
