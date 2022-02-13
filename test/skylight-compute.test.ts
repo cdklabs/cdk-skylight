@@ -50,7 +50,7 @@ test('Skylight-WindowsEKSCluster', () => {
     'ElasticCluster',
     {
       vpc: vpc,
-      madSsmParameters: {},
+      eksSsmParameters: {},
     },
   );
   expect(cluster).toHaveProperty('eksCluster.clusterName');

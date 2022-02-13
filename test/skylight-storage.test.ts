@@ -8,7 +8,7 @@ test('storageTest', () => {
     activeDirectoryId: 'd-12345',
   });
   expect(storage).toHaveProperty(
-    'storageObject.cfnResourceType',
+    'fsxObject.cfnResourceType',
     'AWS::FSx::FileSystem',
   );
 });

@@ -21,6 +21,7 @@ import {
   CfnOutput,
   Fn,
 } from 'aws-cdk-lib';
+import { CfnMicrosoftAD } from 'aws-cdk-lib/aws-directoryservice';
 import { Construct } from 'constructs';
 /**
  * The properties for the AdAuthentication class.
@@ -46,28 +47,23 @@ export interface IADAuthenticationProps {
 	 */
   secret?: secretsmanager.ISecret;
   /**
-	 * The name of the secret to save once generated or stored
-	 * @default - 'Domain name + Secret'.
+	 * The secret name to save the Domain Admin object
+	 * @default - '<domain.name>-secret'.
 	 */
   secretName?: string;
   /**
 	 * The VPC to use, must have private subnets.
 	 */
   vpc: ec2.IVpc;
-  /**
-	 * The SSM namespace to save parameters to
-	 * @default - 'cdk-skylight'.
-	 */
-  namespace?: string;
 
   ssmParameters?: IAdAuthenticationParameters;
 }
 export interface IAdAuthenticationParameters {
   /**
-	 * The secret name to save the Domain Admin object
-	 * @default - 'managed-ad-secretName'.
+	 * The name of the SSM Object that contain the secret name in Secrets Manager
+	 * @default - 'domain-secret'.
 	 */
-  secretName?: string;
+  secretPointer?: string;
 
   /**
 	 * The SSM namespace to read/write parameters to
@@ -76,22 +72,26 @@ export interface IAdAuthenticationParameters {
   namespace?: string;
 }
 export class AdAuthentication extends Construct {
-  readonly secret: secretsmanager.ISecret;
-  readonly ad: mad.CfnMicrosoftAD;
+  readonly adObject: CfnMicrosoftAD;
+  readonly ssmParameters: IAdAuthenticationParameters;
 
   constructor(scope: Construct, id: string, props: IADAuthenticationProps) {
     super(scope, id);
     props.domainName = props.domainName ?? 'domain.aws';
     props.edition = props.edition ?? 'Standard';
     props.secretName = props.secretName ?? `${props.domainName}-secret`;
-    props.namespace = props.namespace ?? 'cdk-skylight';
-    props.ssmParameters = props.ssmParameters ?? {};
-    props.ssmParameters.secretName == props.ssmParameters.secretName ??
-			'managed-ad-secretName';
-    props.ssmParameters.namespace =
-			props.ssmParameters.namespace ?? props.namespace;
 
-    this.secret =
+    this.ssmParameters = props.ssmParameters ?? {};
+    this.ssmParameters.secretPointer =
+			this.ssmParameters.secretPointer ?? 'domain-secret';
+
+    if (this.ssmParameters.namespace) {
+      this.ssmParameters.namespace = `${this.ssmParameters.namespace}/compute/eks`;
+    } else {
+      this.ssmParameters.namespace = 'cdk-skylight/authentication/mad';
+    }
+
+    const secret =
 			props.secret ??
 			new secretsmanager.Secret(this, `${id}-${props.domainName}-secret`, {
 			  generateSecretString: {
@@ -105,8 +105,8 @@ export class AdAuthentication extends Construct {
 			  secretName: props.secretName,
 			});
 
-    new aws_ssm.StringParameter(this, 'ssm-dns-fsxEndpoint', {
-      parameterName: `/${props.namespace}/${props.ssmParameters.secretName}`,
+    new aws_ssm.StringParameter(this, 'mad-secretName-pointer', {
+      parameterName: `/${this.ssmParameters.namespace}/${this.ssmParameters.secretPointer}`,
       stringValue: props.secretName,
     });
 
@@ -116,19 +116,23 @@ export class AdAuthentication extends Construct {
 
     new CfnOutput(this, id + '-SSM-GetSecret', {
       value: `aws secretsmanager get-secret-value --secret-id ${
-        this.secret.secretArn
+        secret.secretArn
       } --query SecretString --output text --region ${'region'}`, //need to fix the region
     });
 
-    this.ad = new mad.CfnMicrosoftAD(this, id + '-managedDirectoryObject', {
-      password: this.secret.secretValueFromJson('Password').toString(),
-      edition: props.edition,
-      name: props.domainName,
-      vpcSettings: {
-        subnetIds: [subnets.subnetIds[0], subnets.subnetIds[1]],
-        vpcId: props.vpc.vpcId,
+    this.adObject = new mad.CfnMicrosoftAD(
+      this,
+      id + '-managedDirectoryObject',
+      {
+        password: secret.secretValueFromJson('Password').toString(),
+        edition: props.edition,
+        name: props.domainName,
+        vpcSettings: {
+          subnetIds: [subnets.subnetIds[0], subnets.subnetIds[1]],
+          vpcId: props.vpc.vpcId,
+        },
       },
-    });
+    );
 
     const sg = new ec2.SecurityGroup(this, id + '-r53-outbound-Resolver-SG', {
       vpc: props.vpc,
@@ -156,8 +160,8 @@ export class AdAuthentication extends Construct {
         resolverEndpointId: outBoundResolver.ref,
         ruleType: 'FORWARD',
         targetIps: [
-          { ip: Fn.select(0, this.ad.attrDnsIpAddresses) },
-          { ip: Fn.select(1, this.ad.attrDnsIpAddresses) },
+          { ip: Fn.select(0, this.adObject.attrDnsIpAddresses) },
+          { ip: Fn.select(1, this.adObject.attrDnsIpAddresses) },
         ],
       },
     );

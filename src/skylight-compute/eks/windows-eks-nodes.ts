@@ -16,12 +16,13 @@ import {
   aws_ec2,
   aws_eks,
   aws_iam,
-  aws_secretsmanager,
   aws_ssm,
   CfnResource,
 } from 'aws-cdk-lib';
 import { AutoScalingGroup } from 'aws-cdk-lib/aws-autoscaling';
 import { Construct } from 'constructs';
+import { IAdAuthenticationParameters } from '../../skylight-authentication';
+import { IFSxWindowsParameters } from '../../skylight-storage';
 
 export interface IRuntimeNodes {
   /**
@@ -33,13 +34,13 @@ export interface IRuntimeNodes {
 	 * Secret: The secrets manager secret to use must be in format:
 	 * '{Domain: <domain.name>, UserID: 'Admin', Password: '<password>'}' (From cdk-skylight.AdAuthentication Object)
 	 */
-  addAdDependency?(secret: aws_secretsmanager.ISecret): void;
+  addAdDependency?(adParametersStore: IAdAuthenticationParameters): void;
   /**
 	 * Method to configure persistent storage dependency to the hosts
 	 */
   addStorageDependency(
-    secret: aws_secretsmanager.ISecret,
-    storageEndpoint: string
+    adParametersStore: IAdAuthenticationParameters,
+    fsxParametersStore: IFSxWindowsParameters
   ): void;
 
   /**
@@ -51,7 +52,7 @@ export interface IRuntimeNodes {
 	 * Method to add support for LocalCredFile
 	 */
   addLocalCredFile?(
-    secret: aws_secretsmanager.ISecret,
+    adParametersStore: IAdAuthenticationParameters,
     ADGroupName: string,
     AccountName: string
   ): void;
@@ -156,10 +157,15 @@ export class WindowsEKSNodes extends Construct implements IRuntimeNodes {
     this.asg.addUserData(...commands);
   }
 
-  addAdDependency(secret: aws_secretsmanager.ISecret) {
+  addAdDependency(adParametersStore: IAdAuthenticationParameters) {
+    const secretName = aws_ssm.StringParameter.valueForStringParameter(
+      this,
+      `/${adParametersStore.namespace}/${adParametersStore.secretPointer}`,
+    );
+
     this.addUserData(`
 			#domain join with secret from secret manager
-			[string]$SecretAD  = "${secret.secretName}"
+			[string]$SecretAD  = "${secretName}"
 			$SecretObj = Get-SECSecretValue -SecretId $SecretAD
 			[PSCustomObject]$Secret = ($SecretObj.SecretString  | ConvertFrom-Json)
 			$password   = $Secret.Password | ConvertTo-SecureString -asPlainText -Force
@@ -186,21 +192,31 @@ export class WindowsEKSNodes extends Construct implements IRuntimeNodes {
   }
 
   addStorageDependency(
-    secret: aws_secretsmanager.ISecret,
-    storageEndpoint: string,
+    adParametersStore: IAdAuthenticationParameters,
+    fsxParametersStore: IFSxWindowsParameters,
   ) {
+    const secretName = aws_ssm.StringParameter.valueForStringParameter(
+      this,
+      `/${adParametersStore.namespace}/${adParametersStore.secretPointer}`,
+    );
+
+    const fsxEndpoint = aws_ssm.StringParameter.valueForStringParameter(
+      this,
+      `/${fsxParametersStore.namespace}/${fsxParametersStore.dnsEndpoint}`,
+    );
+
     const commands = [
       '$bootfix = {',
       '$LocalDrive = Get-SmbGlobalMapping',
       'if ($LocalDrive -eq $null)',
       '{',
-      ` [string]$SecretAD  = '${secret.secretName}'`,
+      ` [string]$SecretAD  = '${secretName}'`,
       ' $SecretObj = Get-SECSecretValue -SecretId $SecretAD',
       ' [PSCustomObject]$Secret = ($SecretObj.SecretString  | ConvertFrom-Json)',
       ' $password   = $Secret.Password | ConvertTo-SecureString -asPlainText -Force',
       " $username   = $Secret.UserID + '@' + $Secret.Domain",
       ' $domain_admin_credential = New-Object System.Management.Automation.PSCredential($username,$password)',
-      ` New-SmbGlobalMapping -RemotePath '${storageEndpoint}' -Credential $domain_admin_credential -LocalPath G: -Persistent $true -RequirePrivacy $true -ErrorAction Stop`,
+      ` New-SmbGlobalMapping -RemotePath '${fsxEndpoint}' -Credential $domain_admin_credential -LocalPath G: -Persistent $true -RequirePrivacy $true -ErrorAction Stop`,
       '}',
       '}',
       'New-Item -ItemType Directory -Path c:\\Scripts',
@@ -237,13 +253,18 @@ export class WindowsEKSNodes extends Construct implements IRuntimeNodes {
   }
 
   addLocalCredFile(
-    secret: aws_secretsmanager.ISecret,
+    adParametersStore: IAdAuthenticationParameters,
     ADGroupName: string,
     AccountName: string,
   ) {
+    const secretName = aws_ssm.StringParameter.valueForStringParameter(
+      this,
+      `/${adParametersStore.namespace}/${adParametersStore.secretPointer}`,
+    );
+
     const commands = [
       '# Getting AD Password',
-      `[string]$SecretAD  = '${secret.secretName}'`,
+      `[string]$SecretAD  = '${secretName}'`,
       '$SecretObj = Get-SECSecretValue -SecretId $SecretAD',
       '[PSCustomObject]$Secret = ($SecretObj.SecretString  | ConvertFrom-Json)',
       '$password   = $Secret.Password | ConvertTo-SecureString -asPlainText -Force',

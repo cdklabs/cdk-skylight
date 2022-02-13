@@ -49,11 +49,6 @@ export interface IFSxWindowsProps {
   activeDirectoryId: string;
 
   vpc: ec2.IVpc;
-  /**
-	 * The SSM namespace to save parameters to
-	 * @default - 'cdk-skylight'.
-	 */
-  namespace?: string;
 
   ssmParameters?: IFSxWindowsParameters;
 }
@@ -73,8 +68,8 @@ export interface IFSxWindowsParameters {
 }
 
 export class FSxWindows extends Construct {
-  readonly storageObject: aws_fsx.CfnFileSystem;
-
+  readonly ssmParameters: IFSxWindowsParameters;
+  readonly fsxObject: aws_fsx.CfnFileSystem;
   constructor(scope: Construct, id: string, props: IFSxWindowsProps) {
     super(scope, id);
     props = props;
@@ -82,12 +77,15 @@ export class FSxWindows extends Construct {
     props.throughputMbps = props.throughputMbps ?? 128;
     props.fileSystemSize = props.fileSystemSize ?? 200;
     props.multiAZ = props.multiAZ ?? true;
-    props.namespace = props.namespace ?? 'cdk-skylight';
-    props.ssmParameters = props.ssmParameters ?? {};
-    props.ssmParameters.dnsEndpoint =
-			props.ssmParameters?.dnsEndpoint ?? 'FSxEndpoint-DNS';
-    props.ssmParameters.namespace =
-			props.ssmParameters.namespace ?? props.namespace;
+    this.ssmParameters = props.ssmParameters ?? {};
+    this.ssmParameters.dnsEndpoint =
+			this.ssmParameters?.dnsEndpoint ?? 'FSxEndpoint-DNS';
+
+    if (this.ssmParameters.namespace) {
+      this.ssmParameters.namespace = `${this.ssmParameters.namespace}/storage/fsx`;
+    } else {
+      this.ssmParameters.namespace = 'cdk-skylight/storage/fsx';
+    }
 
     const subnets = props.vpc.selectSubnets({
       subnetType: props.fileSystemInPrivateSubnet
@@ -118,18 +116,23 @@ export class FSxWindows extends Construct {
       securityGroupIds: [sg.securityGroupId],
     };
 
-    this.storageObject = new aws_fsx.CfnFileSystem(
+    this.fsxObject = new aws_fsx.CfnFileSystem(
       this,
       (id = id + '-FSxObject'),
       fsx_props,
     );
 
     new aws_ssm.StringParameter(this, 'ssm-dns-fsxEndpoint', {
-      parameterName: `/${props.ssmParameters.namespace}/${props.ssmParameters.dnsEndpoint}`,
-      stringValue: this.smbMountAddress(),
+      parameterName: `/${this.ssmParameters.namespace}/${this.ssmParameters.dnsEndpoint}`,
+      stringValue: this.fsxObject.getAtt('DNSName').toString(),
     });
   }
   smbMountAddress(): string {
-    return this.storageObject.getAtt('DNSName').toString();
+    const fsxName = aws_ssm.StringParameter.valueForStringParameter(
+      this,
+      `/${this.ssmParameters.namespace}/${this.ssmParameters.dnsEndpoint}`,
+    );
+
+    return fsxName;
   }
 }

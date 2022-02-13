@@ -18,8 +18,7 @@ test('authentication', () => {
     secretName: 'custom-secret-name',
   });
   expect(mad).toHaveProperty(
-    'ad.cfnResourceType',
+    'adObject.cfnResourceType',
     'AWS::DirectoryService::MicrosoftAD',
   );
-  expect(mad).toHaveProperty('secret.physicalName', mad.ad.name + '-secret');
 });

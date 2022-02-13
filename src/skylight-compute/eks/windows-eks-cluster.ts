@@ -14,29 +14,45 @@
 // Imports
 import { aws_ec2, aws_eks, aws_iam, aws_ssm } from 'aws-cdk-lib';
 import { Construct } from 'constructs';
-import { IAdAuthenticationParameters } from '../../skylight-authentication';
 
 export interface IWindowsEKSClusterProps {
-  /**
-	 * The SSM namespace to save parameters to
-	 * @default - 'cdk-skylight'.
-	 */
-  namespace?: string;
-
   vpc: aws_ec2.IVpc;
 
   /**
-	 * The Managed AD Parameter store to use
+	 * The Windows EKS Cluster parameters
 	 * @default - 'No default'.
 	 */
-  madSsmParameters: IAdAuthenticationParameters;
+  eksSsmParameters?: IWindowsEKSClusterParameters;
+}
+
+export interface IWindowsEKSClusterParameters {
+  /**
+	 * The name of the SSM Object that contains the EKS Cluster name
+	 * @default - 'windows-eks-cluster-name'.
+	 */
+  clusterNamePointer?: string;
+
+  /**
+	 * The SSM namespace to read/write parameters to
+	 * @default - 'cdk-skylight/compute/eks'.
+	 */
+  namespace?: string;
 }
 
 export class WindowsEKSCluster extends Construct {
   readonly eksCluster: aws_eks.Cluster;
   constructor(scope: Construct, id: string, props: IWindowsEKSClusterProps) {
     super(scope, id);
-    props.namespace = props.namespace ?? 'cdk-skylight';
+
+    props.eksSsmParameters = props.eksSsmParameters ?? {};
+    props.eksSsmParameters.clusterNamePointer =
+			props.eksSsmParameters.clusterNamePointer ?? 'windows-eks-cluster-name';
+
+    if (props.eksSsmParameters.namespace) {
+      props.eksSsmParameters.namespace = `${props.eksSsmParameters.namespace}/compute/eks`;
+    } else {
+      props.eksSsmParameters.namespace = 'cdk-skylight/compute/eks';
+    }
 
     const eks_role = new aws_iam.Role(this, 'eks-instance-role', {
       assumedBy: new aws_iam.ServicePrincipal('ec2.amazonaws.com'),
@@ -91,8 +107,8 @@ export class WindowsEKSCluster extends Construct {
     };
     this.eksCluster.addManifest('WindowsSupport', yaml_file);
 
-    new aws_ssm.StringParameter(this, 'secretName', {
-      parameterName: `/${props.madSsmParameters.namespace}/${props.madSsmParameters.secretName}`,
+    new aws_ssm.StringParameter(this, 'clusterNamePointer', {
+      parameterName: `/${props.eksSsmParameters.namespace}/${props.eksSsmParameters.clusterNamePointer}`,
       stringValue: this.eksCluster.clusterName,
     });
   }

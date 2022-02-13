@@ -95,7 +95,7 @@ export class WindowsNode extends Construct {
 
     const secretName = aws_ssm.StringParameter.valueForStringParameter(
       this,
-      `/${props.madSsmParameters.namespace}/${props.madSsmParameters.secretName}`,
+      `/${props.madSsmParameters.namespace}/${props.madSsmParameters.secretPointer}`,
     );
 
     const secret = aws_secretsmanager.Secret.fromSecretNameV2(
