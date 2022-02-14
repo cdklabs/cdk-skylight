@@ -16,7 +16,6 @@ import {
   aws_ec2 as ec2,
   aws_ssm as ssm,
   CfnOutput,
-  aws_secretsmanager,
   aws_ssm,
 } from 'aws-cdk-lib';
 import { Construct } from 'constructs';
@@ -78,6 +77,7 @@ export class WindowsNode extends Construct {
   readonly instance: ec2.Instance;
   readonly nodeRole: iam.Role;
   readonly vpc: ec2.IVpc;
+  readonly secretName: string;
 
   constructor(scope: Construct, id: string, props: IWindowsNodeProps) {
     super(scope, id);
@@ -85,6 +85,7 @@ export class WindowsNode extends Construct {
       iam.ManagedPolicy.fromAwsManagedPolicyName(
         'AmazonSSMManagedInstanceCore',
       ),
+      iam.ManagedPolicy.fromAwsManagedPolicyName('SecretsManagerReadWrite'),
     ];
 
     props.usePrivateSubnet = props.usePrivateSubnet ?? false;
@@ -93,15 +94,9 @@ export class WindowsNode extends Construct {
 
     this.vpc = props.vpc;
 
-    const secretName = aws_ssm.StringParameter.valueForStringParameter(
+    this.secretName = aws_ssm.StringParameter.valueForStringParameter(
       this,
       `/${props.madSsmParameters.namespace}/${props.madSsmParameters.secretPointer}`,
-    );
-
-    const secret = aws_secretsmanager.Secret.fromSecretNameV2(
-      this,
-      'get-secret',
-      secretName,
     );
 
     const nodeImage = new ec2.LookupMachineImage({
@@ -138,7 +133,7 @@ export class WindowsNode extends Construct {
 
     this.instance.addUserData(`
 		#domain join with secret from secret manager
-		[string]$SecretAD  = "${secret.secretName}"
+		[string]$SecretAD  = "${this.secretName}"
 		$SecretObj = Get-SECSecretValue -SecretId $SecretAD
 		[PSCustomObject]$Secret = ($SecretObj.SecretString  | ConvertFrom-Json)
 		$password   = $Secret.Password | ConvertTo-SecureString -asPlainText -Force
@@ -178,28 +173,27 @@ export class WindowsNode extends Construct {
     );
   }
 
-  runPSwithDomainAdmin(
-    psCommands: string[],
-    secret: aws_secretsmanager.ISecret,
-    id: string,
-  ) {
-    var commands = ['$onTimePS = {'];
+  runPSwithDomainAdmin(psCommands: string[], id: string) {
+    var commands = ['$oneTimePS = {'];
     psCommands.forEach((command: string) => {
       commands.push(command);
     });
     commands.push(
       '}',
-      `[string]$SecretAD  = '${secret.secretName}'`,
+      `[string]$SecretAD  = '${this.secretName}'`,
       '$SecretObj = Get-SECSecretValue -SecretId $SecretAD',
       '[PSCustomObject]$Secret = ($SecretObj.SecretString  | ConvertFrom-Json)',
       '$password   = $Secret.Password | ConvertTo-SecureString -asPlainText -Force',
-      " $username   = $Secret.Domain + '\\' + $Secret.UserID ",
+      "$username   = $Secret.Domain + '\\' + $Secret.UserID",
       '$domain_admin_credential = New-Object System.Management.Automation.PSCredential($username,$password)',
       'New-Item -ItemType Directory -Path c:\\Scripts',
       '$tempScriptPath = "C:\\Scripts\\$PID.ps1"',
       '$oneTimePS | set-content $tempScriptPath',
-      'Start-Process Powershell -Argumentlist "-ExecutionPolicy Bypass -NoProfile -File C:\\Scripts\\$PID.ps1" -Credential $domain_admin_credential',
-      'Remove-Item $tempScriptPath',
+      '# Create a scheduled task on startup to execute the mapping',
+      '$action = New-ScheduledTaskAction -Execute "Powershell.exe" -Argument $tempScriptPath',
+      '$trigger =  New-ScheduledTaskTrigger -Once -At (get-date).AddSeconds(10); ',
+      '$trigger.EndBoundary = (get-date).AddSeconds(60).ToString("s") ',
+      'Register-ScheduledTask -Force -Action $action -Trigger $trigger -TaskName "Task to run with DomainAdmin" -Description "Workaround to run the code with domain admin" -RunLevel Highest -User $username -Password $Secret.Password',
     );
     new ssm.CfnAssociation(this, id, {
       name: 'AWS-RunPowerShellScript',

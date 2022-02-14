@@ -1,5 +1,4 @@
 import { App, aws_ec2, Stack } from 'aws-cdk-lib';
-import { Secret } from 'aws-cdk-lib/aws-secretsmanager';
 import * as skylight from '../src';
 
 const env = {
@@ -21,11 +20,7 @@ test('Skylight-WindowsNode', () => {
     },
   );
   windowsNodeObject.runPsCommands(['echo hello world'], 'hello');
-  windowsNodeObject.runPSwithDomainAdmin(
-    ['echo hello world'],
-    new Secret(stack, 'secret'),
-    'hello-withPS',
-  );
+  windowsNodeObject.runPSwithDomainAdmin(['echo hello world'], 'hello-withPS');
   windowsNodeObject.openRDP('1.1.1.1/32');
   expect(windowsNodeObject).toHaveProperty(
     'instance.instance.cfnResourceType',

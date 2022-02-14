@@ -12,8 +12,10 @@
  */
 
 // Imports
-import { aws_ec2 as ec2, aws_ssm, aws_fsx } from 'aws-cdk-lib';
+import { aws_ec2 as ec2, aws_ssm, aws_fsx, aws_iam } from 'aws-cdk-lib';
 import { Construct } from 'constructs';
+import { IAdAuthenticationParameters } from '../skylight-authentication';
+import { WindowsNode } from '../skylight-compute/index';
 
 /**
  * The properties for the PersistentStorage class.
@@ -46,7 +48,8 @@ export interface IFSxWindowsProps {
   /**
 	 * The VPC to use, must have private subnets.
 	 */
-  activeDirectoryId: string;
+
+  adParametersStore: IAdAuthenticationParameters;
 
   vpc: ec2.IVpc;
 
@@ -70,13 +73,16 @@ export interface IFSxWindowsParameters {
 export class FSxWindows extends Construct {
   readonly ssmParameters: IFSxWindowsParameters;
   readonly fsxObject: aws_fsx.CfnFileSystem;
+  readonly props: IFSxWindowsProps;
+  readonly worker: WindowsNode;
   constructor(scope: Construct, id: string, props: IFSxWindowsProps) {
     super(scope, id);
-    props = props;
-    props.fileSystemInPrivateSubnet = props.fileSystemInPrivateSubnet ?? true;
-    props.throughputMbps = props.throughputMbps ?? 128;
-    props.fileSystemSize = props.fileSystemSize ?? 200;
-    props.multiAZ = props.multiAZ ?? true;
+    this.props = props;
+    this.props.fileSystemInPrivateSubnet =
+			props.fileSystemInPrivateSubnet ?? true;
+    this.props.throughputMbps = props.throughputMbps ?? 128;
+    this.props.fileSystemSize = props.fileSystemSize ?? 200;
+    this.props.multiAZ = props.multiAZ ?? true;
     this.ssmParameters = props.ssmParameters ?? {};
     this.ssmParameters.dnsEndpoint =
 			this.ssmParameters?.dnsEndpoint ?? 'FSxEndpoint-DNS';
@@ -87,22 +93,27 @@ export class FSxWindows extends Construct {
       this.ssmParameters.namespace = 'cdk-skylight/storage/fsx';
     }
 
-    const subnets = props.vpc.selectSubnets({
+    const subnets = this.props.vpc.selectSubnets({
       subnetType: props.fileSystemInPrivateSubnet
         ? ec2.SubnetType.PRIVATE_WITH_NAT
         : ec2.SubnetType.PUBLIC,
     }).subnetIds;
 
+    const directoryID = aws_ssm.StringParameter.valueForStringParameter(
+      this,
+      `/${props.adParametersStore.namespace}/${props.adParametersStore.directoryIDPointer}`,
+    );
+
     const windows_configuration: aws_fsx.CfnFileSystem.WindowsConfigurationProperty =
 			{
-			  throughputCapacity: props.throughputMbps,
-			  activeDirectoryId: props.activeDirectoryId,
-			  deploymentType: props.multiAZ ? 'MULTI_AZ_1' : 'SINGLE_AZ_2',
-			  preferredSubnetId: props.multiAZ ? subnets[0] : undefined,
+			  throughputCapacity: this.props.throughputMbps,
+			  activeDirectoryId: directoryID,
+			  deploymentType: this.props.multiAZ ? 'MULTI_AZ_1' : 'SINGLE_AZ_2',
+			  preferredSubnetId: this.props.multiAZ ? subnets[0] : undefined,
 			};
 
     const sg = new ec2.SecurityGroup(this, id + '-FSxSG', {
-      vpc: props.vpc,
+      vpc: this.props.vpc,
     });
 
     // Allow access from inside the VPC
@@ -121,6 +132,7 @@ export class FSxWindows extends Construct {
       (id = id + '-FSxObject'),
       fsx_props,
     );
+    this.worker = this.createWorker(props.adParametersStore);
 
     new aws_ssm.StringParameter(this, 'ssm-dns-fsxEndpoint', {
       parameterName: `/${this.ssmParameters.namespace}/${this.ssmParameters.dnsEndpoint}`,
@@ -134,5 +146,63 @@ export class FSxWindows extends Construct {
     );
 
     return fsxName;
+  }
+
+  createWorker(adParametersStore: IAdAuthenticationParameters): WindowsNode {
+    return new WindowsNode(this, 'worker', {
+      madSsmParameters: adParametersStore,
+      vpc: this.props.vpc,
+      instanceType: 't3.xlarge',
+      iamManagedPoliciesList: [
+        aws_iam.ManagedPolicy.fromAwsManagedPolicyName(
+          'AmazonSSMManagedInstanceCore',
+        ),
+        aws_iam.ManagedPolicy.fromAwsManagedPolicyName(
+          'SecretsManagerReadWrite',
+        ),
+        aws_iam.ManagedPolicy.fromAwsManagedPolicyName(
+          'AmazonFSxReadOnlyAccess',
+        ),
+      ],
+    });
+  }
+
+  createFolder(folderName: string) {
+    const secretName = aws_ssm.StringParameter.valueForStringParameter(
+      this,
+      `/${this.props.adParametersStore.namespace}/${this.props.adParametersStore.secretPointer}`,
+    );
+    this.worker.runPSwithDomainAdmin(
+      [
+        `$FSX = '${this.fsxObject
+          .getAtt('DNSName')
+          .toString()}' ## Amazon FSx DNS Name`,
+        '$FSxPS = (Get-FSXFileSystem | ? {$_.DNSName -contains $FSX}).WindowsConfiguration.RemoteAdministrationEndpoint',
+        `$FolderName = '${folderName}'`,
+        `[string]$SecretAD  = '${secretName}'`,
+        '$SecretObj = Get-SECSecretValue -SecretId $SecretAD',
+        '[PSCustomObject]$Secret = ($SecretObj.SecretString  | ConvertFrom-Json)',
+        '$password   = $Secret.Password | ConvertTo-SecureString -asPlainText -Force',
+        " $username   = $Secret.Domain + '\\' + $Secret.UserID ",
+        '$domain_admin_credential = New-Object System.Management.Automation.PSCredential($username,$password)',
+        '# Create the folder (the shared driver to the hosts)',
+        'New-Item -ItemType Directory -Name $FolderName -Path \\\\$FSX\\D$\\',
+        '# Set NTFS Permissions',
+        '# ACL',
+        '$ACL = Get-Acl \\\\$FSx\\D$\\$FolderName',
+        '$permission = "NT AUTHORITY\\Authenticated Users","FullControl","Allow"',
+        '$Ar = New-Object System.Security.AccessControl.FileSystemAccessRule $permission',
+        '$ACL.SetAccessRule($Ar)',
+        'Set-Acl \\\\$FSX\\D$\\$FolderName $ACL',
+        '# Create the Share and set the share permissions',
+        '$Session = New-PSSession -ComputerName $FSxPS -ConfigurationName FsxRemoteAdmin',
+        'Import-PsSession $Session',
+        'New-FSxSmbShare -Name $FolderName -Path "D:\\$FolderName" -Description "Shared folder with gMSA access" -Credential $domain_admin_credential -FolderEnumerationMode AccessBased',
+        '$accessList="NT AUTHORITY\\Authenticated Users"',
+        'Grant-FSxSmbShareaccess -Name $FolderName -AccountName $accessList -accessRight Full -Confirm:$false',
+        'Disconnect-PSSession -Session $Session',
+      ],
+      'createFolder',
+    );
   }
 }
