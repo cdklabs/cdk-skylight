@@ -36,11 +36,12 @@ export interface IRuntimeNodes {
 	 */
   addAdDependency?(adParametersStore: IAdAuthenticationParameters): void;
   /**
-	 * Method to configure persistent storage dependency to the hosts
+	 * Method to configure persistent storage dependency to the hosts by using Global Mapping.
 	 */
   addStorageDependency(
     adParametersStore: IAdAuthenticationParameters,
-    fsxParametersStore: IFSxWindowsParameters
+    fsxParametersStore: IFSxWindowsParameters,
+    folderName: string
   ): void;
 
   /**
@@ -194,6 +195,7 @@ export class WindowsEKSNodes extends Construct implements IRuntimeNodes {
   addStorageDependency(
     adParametersStore: IAdAuthenticationParameters,
     fsxParametersStore: IFSxWindowsParameters,
+    folderName: string,
   ) {
     const secretName = aws_ssm.StringParameter.valueForStringParameter(
       this,
@@ -204,6 +206,8 @@ export class WindowsEKSNodes extends Construct implements IRuntimeNodes {
       this,
       `/${fsxParametersStore.namespace}/${fsxParametersStore.dnsEndpoint}`,
     );
+
+    const smbPath = `\\\\${fsxEndpoint}\\${folderName}`;
 
     const commands = [
       '$bootfix = {',
@@ -216,7 +220,7 @@ export class WindowsEKSNodes extends Construct implements IRuntimeNodes {
       ' $password   = $Secret.Password | ConvertTo-SecureString -asPlainText -Force',
       " $username   = $Secret.UserID + '@' + $Secret.Domain",
       ' $domain_admin_credential = New-Object System.Management.Automation.PSCredential($username,$password)',
-      ` New-SmbGlobalMapping -RemotePath '${fsxEndpoint}' -Credential $domain_admin_credential -LocalPath G: -Persistent $true -RequirePrivacy $true -ErrorAction Stop`,
+      ` New-SmbGlobalMapping -RemotePath '${smbPath}' -Credential $domain_admin_credential -LocalPath G: -Persistent $true -RequirePrivacy $true -ErrorAction Stop`,
       '}',
       '}',
       'New-Item -ItemType Directory -Path c:\\Scripts',
@@ -229,7 +233,7 @@ export class WindowsEKSNodes extends Construct implements IRuntimeNodes {
       ' [PSCustomObject]$Secret = ($SecretObj.SecretString  | ConvertFrom-Json)',
       " $username   = $Secret.UserID + '@' + $Secret.Domain",
       "Register-ScheduledTask -Action $action -Trigger $trigger -TaskName 'SmbGlobalMapping' -Description 'Mapping the SMB share and adding machine to gMSA' -RunLevel Highest -User $username -Password $Secret.Password",
-      '# Running the boot fix once',
+      '# Running the boot fix now',
       '& $bootfix',
       '',
     ];
