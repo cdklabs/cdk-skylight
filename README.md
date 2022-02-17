@@ -33,48 +33,93 @@ new skylight.authentication.AdAuthentication(scope: Construct, id: string, props
 
 # CDK Skylight Constructs 
 
+## Skylight-Compute
+
+Library of Custom Compute components 
+
+### DomainWindowsNode
+
+A Domain Windows Node Construct represents one Windows EC2 instance configured with Active Directory.
+
+The DomainWindowsNode can be customized to different instance sizes and additional permissions set just like any other EC2 Instance.
+You can use this construct to run elevated domain tasks with domain permissions or run your application in a single instance setup.
+
+The machine will be joined to the provided Active Directory domain using a custom CloudFormation bootstrap that will wait until the required reboot to join the domain. Then it will register the machine in SSM and pull tasks from the SSM State manager.
+
+You can send tasks to that machine using the provided methods: runPsCommands() and runPSwithDomainAdmin()
+
+```typescript
+const windowsNodeObject = new skylight.compute.DomainWindowsNode(
+    stack,
+    'WindowsNode',
+    {
+      vpc: vpc,
+      madSsmParameters: {}, //pointer to the Secret that holds the Domain Admin username and password
+    },
+  );
+
+// Special Methods:
+windowsNodeObject.runPsCommands(['echo hello-world'], 'hello');
+windowsNodeObject.runPSwithDomainAdmin(['Write-Host hello-world'], 'hello-withPS');
+windowsNodeObject.openRDP('1.1.1.1/32');
+
+```
 ## Skylight-Authentication
 
 Library of Custom Authentication components 
 
 ### **AdAuthentication** - Manged Active Directory with R53 Resolvers 
 
-This construct creates Amazon VPC, Amazon Managed AD, Secret for the domain Admin stored in Secrets Manager and Route 53 forward rule for the domain.
-The construct provides a way to customize the configuration and smart defaults for the infrastructures.
+A Ad Authentication represents an integration pattern of Managed AD and Route 53 Resolver in a specific VPC, it will create Managed AD with the provided Secret (Secrets Manager) or generates a new Secret.
+
+The secret saved to SSM parameter store so others can use it with other Constructs (Such as Windows node or FSx)
+The provided VPC or the new created VPC will be configured to forward DNS requests to the Managed AD with Route53 Resolvers
+
+The construct also creates (optionally) t3.nano machine that is part of the domain that can be used to run admin-tasks (such as createADGroup)
+The createADGroup() method creates an Active Directory permission group in the domain, using the domain admin user.
+
+Please note: When calling createADGroup() API, a Lambda will be created to start the worker machine (Using AWS-SDK),
+then each command will be scheduled with State Manager, and the instance will be shut down after complete.
 
 Example:
 
 ```typescript
-const stack = new Stack();
-new AdAuthentication(stack, 'AdAuthentication', {
-	vpc: new aws_ec2.Vpc(stack, 'MyVpc', {}),
-	domainName: "skylight.aws",
-	edition: 'enterprise',
-	secretName: 'skylight.aws-secret',
-});
+new skylight.authentication.AdAuthentication(
+	stack,
+	'AdAuthentication2',
+	{
+		vpc: vpc,
+		edition: 'enterprise', // Optional
+		secret: new Secret(stack, 'test-secret'), // Optional
+		domainName: 'test-domain', // Optional
+		secretName: 'custom-secret-name', // Optional
+		createWorker: false, // Optional
+	},
+);
 ```
 
-## Skylight-Compute
+## Skylight-Storage
+### FSxWindows 
 
-Library of Custom Compute components 
+A FSxWindows represents an integration pattern of Amazon FSx and Managed AD in a specific VPC.
+The Construct creates Amazon FSx for Windows 
 
-### WindowsNode - Windows Generic Worker
+The construct also creates t3.nano machine that is part of the domain that can be used to run admin-tasks (such as createFolder)
+The createFolder() method creates an SMB Folder in the FSx filesystem, using the domain admin user.
 
-The stack creates Windows Server with the latest AMI and joins the machine to the domain. It is possible to send Powershell commands or connect and work from the machine. 
+Please note: When calling createFolder() API, a Lambda will be created to start the worker machine (Using AWS-SDK), then each command will be scheduled with State Manager, and the instance will be shut down after complete.
+
+Example:
 
 ```typescript
-const windowsNodeObject = new WindowsNode(stack, 'WindowsNode', {
-	vpc: new aws_ec2.Vpc(stack, 'MyVpc', {}),
-	userData: 'echo "hello-world"',
+this.fsxWindows = new skylight.storage.FSxWindows(this, "FSx", {
+	vpc: vpc,
+	adParametersStore: adParametersStore
 });
-windowsNodeObject.runPsCommands(['echo hello world'], 'hello-world'); // ability to run PS commands after launch (With SSM document)
-windowsNodeObject.runPSwithDomainAdmin( // ability to run PS commands with Domain Admin (Using Secret Manager)
-	['echo hello world'], // PS Commands array
-	new Secret(stack, 'secret'), // Secret with the Domain Credentials
-		'hello-withPS',
-		);
-windowsNodeObject.openRDP('1.1.1.1/32'); // ability to open RDP Port to CIDR
+this.fsxWindows.createFolder("containerStorage");
 ```
+
+# Very experimental Libraries 
 
 ### EKS Compute
 
@@ -103,18 +148,4 @@ myNodes.addAdDependency(secretObject);
 myNodes.addStorageDependency(secretObject, storageMount);
 myNodes.addEKSDependency(eks_cluster.eksCluster);
 myNodes.addLocalCredFile(secretObject, 'myEKSNodes', 'myWebApp');
-```
-## Skylight-Storage
-### FSxWindows 
-
-This construct creates Amazon FSx integrated with Managed AD
-Example:
-
-```typescript
-const vpc_infrastructure = new FSxWindows(this, "Main-Infra", {
-	FSxMBps: 128, 
-	FSxSize: 100, 
-	MultiAZ: false, 
-	FSxInPrivateSubnet: true, 
-});
 ```

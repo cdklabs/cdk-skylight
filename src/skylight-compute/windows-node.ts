@@ -76,15 +76,14 @@ export interface IDomainWindowsNodeProps {
 }
 
 /**
- * A Domain Windows Node represents one Windows EC2 instance that is configured with Active Directory.
+ * A Domain Windows Node represents one Windows EC2 instance configured with Active Directory.
  *
- * The DomainWindowsNode can be customized to different instance sizes and different permissions set just like any other EC2 Instance.
- * You can use this construct to run elevated domain tasks with domain permissions or to run your application in a single instance setup.
+ * The DomainWindowsNode can be customized to different instance sizes and additional permissions set just like any other EC2 Instance.
+ * You can use this construct to run elevated domain tasks with domain permissions or run your application in a single instance setup.
  *
- * The machine will be joined to the provided Active Directory domain using custom CloudFormation bootstrap that will wait until the instance
- * will finish the required reboot to join the domain. Then it will register the machine in SSM and will pull tasks from SSM State manager.
+ * The machine will be joined to the provided Active Directory domain using a custom CloudFormation bootstrap that will wait until the required reboot to join the domain. Then it will register the machine in SSM and pull tasks from the SSM State manager.
  *
- * You can send tasks to that machine using the provided methods : runPsCommands() and runPSwithDomainAdmin()
+ * You can send tasks to that machine using the provided methods: runPsCommands() and runPSwithDomainAdmin()
  *
  */
 export class DomainWindowsNode extends Construct {

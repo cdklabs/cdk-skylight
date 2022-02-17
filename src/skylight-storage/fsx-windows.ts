@@ -13,6 +13,10 @@
 
 // Imports
 import { aws_ec2 as ec2, aws_ssm, aws_fsx, aws_iam } from 'aws-cdk-lib';
+import {
+  AwsCustomResource,
+  AwsCustomResourcePolicy,
+} from 'aws-cdk-lib/custom-resources';
 import { Construct } from 'constructs';
 import { IAdAuthenticationParameters } from '../skylight-authentication';
 import { DomainWindowsNode } from '../skylight-compute/index';
@@ -70,6 +74,17 @@ export interface IFSxWindowsParameters {
   namespace?: string;
 }
 
+/**
+* A FSxWindows represents an integration pattern of Amazon FSx and Managed AD in a specific VPC.
+
+* The Construct creates Amazon FSx for Windows
+* The construct also creates (optionally) t3.nano machine that is part of the domain that can be used to run admin-tasks (such as createFolder)
+*
+* The createFolder() method creates an SMB Folder in the FSx filesystem, using the domain admin user.
+* Please note: When calling createFolder() API, a Lambda will be created to start the worker machine (Using AWS-SDK),
+* then each command will be scheduled with State Manager, and the instance will be shut down after complete .
+ *
+ */
 export class FSxWindows extends Construct {
   readonly ssmParameters: IFSxWindowsParameters;
   readonly fsxObject: aws_fsx.CfnFileSystem;
@@ -154,7 +169,7 @@ export class FSxWindows extends Construct {
     return new DomainWindowsNode(this, 'worker', {
       madSsmParameters: adParametersStore,
       vpc: this.props.vpc,
-      instanceType: 't3.xlarge',
+      instanceType: 't2.nano',
       iamManagedPoliciesList: [
         aws_iam.ManagedPolicy.fromAwsManagedPolicyName(
           'AmazonSSMManagedInstanceCore',
@@ -170,6 +185,21 @@ export class FSxWindows extends Construct {
   }
 
   createFolder(folderName: string) {
+    new AwsCustomResource(this, 'start-instance-needed', {
+      policy: AwsCustomResourcePolicy.fromSdkCalls({
+        resources: AwsCustomResourcePolicy.ANY_RESOURCE,
+      }),
+      onUpdate: {
+        service: 'EC2',
+        action: 'startInstances', // https://docs.aws.amazon.com/AWSJavaScriptSDK/latest/AWS/EC2.html#startInstances-property
+        parameters: {
+          InstanceIds: [this.worker.instance.instanceId],
+        },
+        physicalResourceId: {
+          id: 'startInstance-' + folderName,
+        },
+      },
+    });
     const secretName = aws_ssm.StringParameter.valueForStringParameter(
       this,
       `/${this.props.adParametersStore.namespace}/${this.props.adParametersStore.secretPointer}`,
@@ -203,6 +233,7 @@ export class FSxWindows extends Construct {
         '$accessList="NT AUTHORITY\\Authenticated Users"',
         'Grant-FSxSmbShareaccess -Name $FolderName -AccountName $accessList -accessRight Full -Confirm:$false',
         'Disconnect-PSSession -Session $Session',
+        'Stop-Computer -ComputerName localhost',
       ],
       'createFolder',
     );

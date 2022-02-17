@@ -97,12 +97,12 @@ export interface IAdAuthenticationParameters {
 /**
  * A Ad Authentication represents an integration pattern of Managed AD and Route 53 Resolver in a specific VPC
  *
- * The Construct creates Managed AD with the provided Secret (Secrets Manager) or generates new Secret.
- * The secret saved to SSM parameter store so it can be used with other Constructs (Such as Windows node or FSx)
+ * The Construct creates Managed AD with the provided Secret (Secrets Manager) or generates a new Secret.
+ * The secret saved to SSM parameter store so others can use it with other Constructs (Such as Windows node or FSx)
  * The provided VPC or the new created VPC will be configured to forward DNS requests to the Managed AD with Route53 Resolvers
- * The construct also creates (optionally) t3.nano machine that is part of the domain, that can be used to run admin-tasks (such as createADGroup)
+ * The construct also creates (optionally) t3.nano machine that is part of the domain that can be used to run admin-tasks (such as createADGroup)
  *
- * The createADGroup() method creates Active Directory permission group in the domain, using the domain admin user.
+ * The createADGroup() method creates an Active Directory permission group in the domain, using the domain admin user.
  * Please note: When calling createADGroup() API, a Lambda will be created to start the worker machine (Using AWS-SDK),
  * then each command will be scheduled with State Manager, and the instance will be shut down after complete.
  *
