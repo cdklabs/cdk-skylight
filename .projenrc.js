@@ -11,7 +11,6 @@ const project = new awscdk.AwsCdkConstructLibrary({
   gitignore: ['.DS_Store'],
   autoApproveProjenUpgrades: true,
   autoApproveUpgrades: true,
-  projenUpgradeSecret: 'PROJEN_GITHUB_TOKEN',
   autoApproveOptions: {
     allowedUsernames: ['cdklabs-automation'],
     secret: 'GITHUB_TOKEN',

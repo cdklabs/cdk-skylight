@@ -15,7 +15,7 @@
 import { aws_ec2 as ec2, aws_ssm, aws_fsx, aws_iam } from 'aws-cdk-lib';
 import { Construct } from 'constructs';
 import { IAdAuthenticationParameters } from '../skylight-authentication';
-import { WindowsNode } from '../skylight-compute/index';
+import { DomainWindowsNode } from '../skylight-compute/index';
 
 /**
  * The properties for the PersistentStorage class.
@@ -74,7 +74,7 @@ export class FSxWindows extends Construct {
   readonly ssmParameters: IFSxWindowsParameters;
   readonly fsxObject: aws_fsx.CfnFileSystem;
   readonly props: IFSxWindowsProps;
-  readonly worker: WindowsNode;
+  readonly worker: DomainWindowsNode;
   constructor(scope: Construct, id: string, props: IFSxWindowsProps) {
     super(scope, id);
     this.props = props;
@@ -148,8 +148,10 @@ export class FSxWindows extends Construct {
     return fsxName;
   }
 
-  createWorker(adParametersStore: IAdAuthenticationParameters): WindowsNode {
-    return new WindowsNode(this, 'worker', {
+  createWorker(
+    adParametersStore: IAdAuthenticationParameters,
+  ): DomainWindowsNode {
+    return new DomainWindowsNode(this, 'worker', {
       madSsmParameters: adParametersStore,
       vpc: this.props.vpc,
       instanceType: 't3.xlarge',

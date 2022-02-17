@@ -50,7 +50,7 @@ export interface IRuntimeNodes {
   addEKSDependency?(eksCluster: aws_eks.Cluster): void;
 
   /**
-	 * Method to add support for LocalCredFile
+	 * Method to add support for LocalCredFile <Experimental>
 	 */
   addLocalCredFile?(
     adParametersStore: IAdAuthenticationParameters,

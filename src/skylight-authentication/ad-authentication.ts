@@ -22,7 +22,12 @@ import {
   Fn,
 } from 'aws-cdk-lib';
 import { CfnMicrosoftAD } from 'aws-cdk-lib/aws-directoryservice';
+import {
+  AwsCustomResource,
+  AwsCustomResourcePolicy,
+} from 'aws-cdk-lib/custom-resources';
 import { Construct } from 'constructs';
+import * as skylight from '../index';
 /**
  * The properties for the AdAuthentication class.
  */
@@ -57,7 +62,18 @@ export interface IADAuthenticationProps {
   vpc: ec2.IVpc;
 
   ssmParameters?: IAdAuthenticationParameters;
+
+  /**
+	 * Create Domain joined machine to be used to run Powershell commands to that directory. (i.e Create Ad Group)
+	 * @default - 'true'.
+	 */
+  createWorker?: boolean;
 }
+
+/**
+ * The properties of an DomainWindowsNodeProps, requires Active Directory parameter to read the Secret to join the domain
+ * Default setting: Domain joined, m5.2xlarge, latest windows, Managed by SSM.
+ */
 export interface IAdAuthenticationParameters {
   /**
 	 * The name of the SSM Object that contains the secret name in Secrets Manager
@@ -77,15 +93,33 @@ export interface IAdAuthenticationParameters {
 	 */
   namespace?: string;
 }
+
+/**
+ * A Ad Authentication represents an integration pattern of Managed AD and Route 53 Resolver in a specific VPC
+ *
+ * The Construct creates Managed AD with the provided Secret (Secrets Manager) or generates new Secret.
+ * The secret saved to SSM parameter store so it can be used with other Constructs (Such as Windows node or FSx)
+ * The provided VPC or the new created VPC will be configured to forward DNS requests to the Managed AD with Route53 Resolvers
+ * The construct also creates (optionally) t3.nano machine that is part of the domain, that can be used to run admin-tasks (such as createADGroup)
+ *
+ * The createADGroup() method creates Active Directory permission group in the domain, using the domain admin user.
+ * Please note: When calling createADGroup() API, a Lambda will be created to start the worker machine (Using AWS-SDK),
+ * then each command will be scheduled with State Manager, and the instance will be shut down after complete.
+ *
+ */
 export class AdAuthentication extends Construct {
   readonly adObject: CfnMicrosoftAD;
   readonly ssmParameters: IAdAuthenticationParameters;
+  readonly props: IADAuthenticationProps;
+  readonly worker?: skylight.compute.DomainWindowsNode;
 
   constructor(scope: Construct, id: string, props: IADAuthenticationProps) {
     super(scope, id);
-    props.domainName = props.domainName ?? 'domain.aws';
-    props.edition = props.edition ?? 'Standard';
-    props.secretName = props.secretName ?? `${props.domainName}-secret`;
+    this.props = props;
+    this.props.domainName = props.domainName ?? 'domain.aws';
+    this.props.edition = props.edition ?? 'Standard';
+    this.props.secretName = props.secretName ?? `${props.domainName}-secret`;
+    this.props.createWorker = props.createWorker ?? true;
 
     this.ssmParameters = props.ssmParameters ?? {};
     this.ssmParameters.secretPointer =
@@ -101,7 +135,7 @@ export class AdAuthentication extends Construct {
     }
 
     const secret =
-			props.secret ??
+			this.props.secret ??
 			new secretsmanager.Secret(this, `${id}-${props.domainName}-secret`, {
 			  generateSecretString: {
 			    secretStringTemplate: JSON.stringify({
@@ -116,7 +150,7 @@ export class AdAuthentication extends Construct {
 
     new aws_ssm.StringParameter(this, 'mad-secretName-pointer', {
       parameterName: `/${this.ssmParameters.namespace}/${this.ssmParameters.secretPointer}`,
-      stringValue: props.secretName,
+      stringValue: this.props.secretName,
     });
 
     const subnets = props.vpc.selectSubnets({
@@ -135,7 +169,7 @@ export class AdAuthentication extends Construct {
       {
         password: secret.secretValueFromJson('Password').toString(),
         edition: props.edition,
-        name: props.domainName,
+        name: this.props.domainName,
         vpcSettings: {
           subnetIds: [subnets.subnetIds[0], subnets.subnetIds[1]],
           vpcId: props.vpc.vpcId,
@@ -170,7 +204,7 @@ export class AdAuthentication extends Construct {
       this,
       id + '-r53-resolver-rules',
       {
-        domainName: props.domainName,
+        domainName: this.props.domainName,
         resolverEndpointId: outBoundResolver.ref,
         ruleType: 'FORWARD',
         targetIps: [
@@ -188,5 +222,74 @@ export class AdAuthentication extends Construct {
         vpcId: props.vpc.vpcId,
       },
     );
+
+    if (this.props.createWorker) {
+      this.worker = this.createWorker(this.ssmParameters);
+      this.worker.runPSwithDomainAdmin(
+        ['Add-WindowsFeature RSAT-AD-PowerShell'],
+        'ad-powershell',
+      );
+    } else {
+      this.worker = undefined;
+    }
+  }
+
+  // Creates DomainWindowsNode that will be used to run admin-tasks to this directory
+  createWorker(
+    adParametersStore: IAdAuthenticationParameters,
+  ): skylight.compute.DomainWindowsNode {
+    return new skylight.compute.DomainWindowsNode(this, 'madWorker', {
+      madSsmParameters: adParametersStore,
+      vpc: this.props.vpc,
+      instanceType: 't2.nano',
+    });
+  }
+
+  // The function creates a Lambda to Start the Windows Worker, then creates SSM Document and Desired state in State Manager to schedule this document on the Worker.
+  createADGroup(groupName: string, groupDescription: string) {
+    if (this.worker) {
+      new AwsCustomResource(this, 'start-instance-needed', {
+        policy: AwsCustomResourcePolicy.fromSdkCalls({
+          resources: AwsCustomResourcePolicy.ANY_RESOURCE,
+        }),
+        onUpdate: {
+          service: 'EC2',
+          action: 'startInstances', // https://docs.aws.amazon.com/AWSJavaScriptSDK/latest/AWS/EC2.html#startInstances-property
+          parameters: {
+            InstanceIds: [this.worker.instance.instanceId],
+          },
+          physicalResourceId: {
+            id: 'startInstance-' + groupName,
+          },
+        },
+      });
+      this.worker.runPSwithDomainAdmin(
+        [
+          `New-ADGroup -Name "${groupDescription}" -SamAccountName "${groupName}" -GroupScope DomainLocal`,
+          'Stop-Computer -ComputerName localhost',
+        ],
+        'createAdGroup',
+      );
+    } else {
+      console.log("Can't create AD group when no Worker is defined");
+    }
+  }
+
+  // Experimental
+  createServiceAccount(
+    adServiceAccountName: string,
+    servicePrincipalNames: string,
+    principalsAllowedToRetrieveManagedPassword: string,
+  ) {
+    if (this.worker) {
+      this.worker.runPSwithDomainAdmin(
+        [
+          `New-ADServiceAccount -Name "${adServiceAccountName}" -DnsHostName "${adServiceAccountName}.${this.props.domainName}" -ServicePrincipalNames "${servicePrincipalNames}" -PrincipalsAllowedToRetrieveManagedPassword "${principalsAllowedToRetrieveManagedPassword}"`,
+        ],
+        'createServiceAccount',
+      );
+    } else {
+      console.log("Can't createServiceAccount when no Worker is defined");
+    }
   }
 }

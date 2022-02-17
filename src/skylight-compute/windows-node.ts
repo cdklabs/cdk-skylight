@@ -17,14 +17,18 @@ import {
   aws_ssm as ssm,
   CfnOutput,
   aws_ssm,
+  aws_ec2,
+  Stack,
+  Fn,
 } from 'aws-cdk-lib';
 import { Construct } from 'constructs';
 import { IAdAuthenticationParameters } from '../skylight-authentication';
 
 /**
- * The properties for the WindowsNode class.
+ * The properties of an DomainWindowsNodeProps, requires Active Directory parameter to read the Secret to join the domain
+ * Default setting: Domain joined, m5.2xlarge, latest windows, Managed by SSM.
  */
-export interface IWindowsNodeProps {
+export interface IDomainWindowsNodeProps {
   /**
 	 * IAM Instance role permissions
 	 * @default - 'AmazonSSMManagedInstanceCore, AmazonSSMDirectoryServiceAccess'.
@@ -49,37 +53,47 @@ export interface IWindowsNodeProps {
 	 */
   amiName?: string;
   /**
-	 * UserData string
-	 *  @default - 'No'
+	 * Specific UserData to use
+	 *
+	 * The UserData may still be mutated after creation.
+	 *
+	 *  @default - 'No default'
 	 */
   userData?: string;
   /**
-	 * The VPC to use, must have private subnets.
+	 * The VPC to use
 	 */
   vpc: ec2.IVpc;
-  /**
-	 * The SSM namespace to save parameters to
-	 * @default - 'cdk-skylight'.
-	 */
-  namespace?: string;
 
   /**
-	 * The Managed AD Parameter store to use
+	 * The Managed AD Parameter store to use, should contain the secret name (Secrets manager) and the namespace to find the secret.
+	 * i.e: {namespace = "cdk-skylight", secretPointer = "mad-secret"}.
+	 * Please note: `secretPointer` is the name of the SSM parameter and not the secret name. The secret name should be stored in the provided parameter.
+	 *
 	 * @default - 'No default'.
 	 */
   madSsmParameters: IAdAuthenticationParameters;
 }
 
 /**
- * The WindowsNode class.
+ * A Domain Windows Node represents one Windows EC2 instance that is configured with Active Directory.
+ *
+ * The DomainWindowsNode can be customized to different instance sizes and different permissions set just like any other EC2 Instance.
+ * You can use this construct to run elevated domain tasks with domain permissions or to run your application in a single instance setup.
+ *
+ * The machine will be joined to the provided Active Directory domain using custom CloudFormation bootstrap that will wait until the instance
+ * will finish the required reboot to join the domain. Then it will register the machine in SSM and will pull tasks from SSM State manager.
+ *
+ * You can send tasks to that machine using the provided methods : runPsCommands() and runPSwithDomainAdmin()
+ *
  */
-export class WindowsNode extends Construct {
+export class DomainWindowsNode extends Construct {
   readonly instance: ec2.Instance;
   readonly nodeRole: iam.Role;
   readonly vpc: ec2.IVpc;
   readonly secretName: string;
 
-  constructor(scope: Construct, id: string, props: IWindowsNodeProps) {
+  constructor(scope: Construct, id: string, props: IDomainWindowsNodeProps) {
     super(scope, id);
     props.iamManagedPoliciesList = props.iamManagedPoliciesList ?? [
       iam.ManagedPolicy.fromAwsManagedPolicyName(
@@ -90,10 +104,10 @@ export class WindowsNode extends Construct {
 
     props.usePrivateSubnet = props.usePrivateSubnet ?? false;
     props.userData = props.userData ?? '';
-    props.namespace = props.namespace ?? 'cdk-skylight';
 
     this.vpc = props.vpc;
 
+    // Look for the secret to join the Managed AD
     this.secretName = aws_ssm.StringParameter.valueForStringParameter(
       this,
       `/${props.madSsmParameters.namespace}/${props.madSsmParameters.secretPointer}`,
@@ -113,6 +127,45 @@ export class WindowsNode extends Construct {
       vpc: this.vpc,
     });
 
+    // Setting static logical ID for the Worker, to allow further customization
+    const workerName = 'ec2InstanceWorker';
+
+    // Create CloudFormation Config set to allow the Domain join report back to Cloudformation only after reboot.
+    const config = ec2.CloudFormationInit.fromConfigSets({
+      configSets: {
+        domainJoinRestart: ['domainJoin', 'signal'],
+      },
+      configs: {
+        domainJoin: new ec2.InitConfig([
+          ec2.InitCommand.shellCommand(
+            // Step1 : Domain Join using the Secret provided
+            `powershell.exe -command  "Invoke-Command -ScriptBlock {[string]$SecretAD  = '${this.secretName}' ;$SecretObj = Get-SECSecretValue -SecretId $SecretAD ;[PSCustomObject]$Secret = ($SecretObj.SecretString  | ConvertFrom-Json) ;$password   = $Secret.Password | ConvertTo-SecureString -asPlainText -Force ;$username   = $Secret.UserID + '@' + $Secret.Domain ;$credential = New-Object System.Management.Automation.PSCredential($username,$password) ;Add-Computer -DomainName $Secret.Domain -Credential $credential; Restart-Computer -Force}"`,
+            {
+              waitAfterCompletion: ec2.InitCommandWaitDuration.forever(),
+            },
+          ),
+        ]),
+        signal: new ec2.InitConfig([
+          ec2.InitCommand.shellCommand(
+            // Step 3: CloudFormation signal
+            `cfn-signal.exe --success=true --resource=${workerName} --stack=${
+              Stack.of(this).stackName
+            } --region=${Stack.of(this).region}`,
+            {
+              waitAfterCompletion: ec2.InitCommandWaitDuration.none(),
+            },
+          ),
+        ]),
+      },
+    });
+    const attachInitOptions: ec2.AttachInitOptions = {
+      platform: ec2.OperatingSystemType.WINDOWS,
+      configSets: ['domainJoinRestart'],
+      instanceRole: this.nodeRole,
+      userData: aws_ec2.UserData.custom(''),
+      embedFingerprint: false,
+    };
+
     this.instance = new ec2.Instance(this, id + '-ec2instance', {
       instanceType: new ec2.InstanceType(props.instanceType ?? 'm5.large'),
       machineImage: nodeImage,
@@ -125,23 +178,35 @@ export class WindowsNode extends Construct {
           : ec2.SubnetType.PUBLIC,
         onePerAz: true,
       }),
+      init: config,
+      initOptions: attachInitOptions,
     });
 
+    // Override the logical ID name so it can be refereed before initialized
+    const CfnInstance = this.instance.node.defaultChild as ec2.CfnInstance;
+    CfnInstance.overrideLogicalId(workerName);
+
+    // Override the default UserData script to execute only the cfn-init (without cfn-signal) as we want cfn-signal to be executed after reboot. More details here: https://aws.amazon.com/premiumsupport/knowledge-center/create-complete-bootstrapping/
+    CfnInstance.userData = Fn.base64(
+      `<powershell>cfn-init.exe -v -s ${
+        Stack.of(this).stackName
+      } -r ${workerName} --configsets=domainJoinRestart --region ${
+        Stack.of(this).region
+      }</powershell>`,
+    );
+
+    // Override the default 5M timeout to support longer Windows boot time
+    CfnInstance.cfnOptions.creationPolicy = {
+      resourceSignal: {
+        count: 1,
+        timeout: 'PT30M',
+      },
+    };
+
+    // Append the user data
     if (props.userData != '') {
       this.instance.addUserData(props.userData);
     }
-
-    this.instance.addUserData(`
-		#domain join with secret from secret manager
-		[string]$SecretAD  = "${this.secretName}"
-		$SecretObj = Get-SECSecretValue -SecretId $SecretAD
-		[PSCustomObject]$Secret = ($SecretObj.SecretString  | ConvertFrom-Json)
-		$password   = $Secret.Password | ConvertTo-SecureString -asPlainText -Force
-		$username   = $Secret.UserID + "@" + $Secret.Domain
-		$credential = New-Object System.Management.Automation.PSCredential($username,$password)
-		Add-Computer -DomainName $Secret.Domain -Credential $credential
-		Restart-Computer -Force
-    `);
 
     new CfnOutput(this, id + '-stack-output', {
       value: `InstanceId: ${this.instance.instanceId}; dnsName: ${this.instance.instancePublicDnsName}`,
@@ -149,7 +214,7 @@ export class WindowsNode extends Construct {
   }
 
   /**
-	 * Running powershell scripts on the Node with SSM Document.
+	 * Running PowerShell scripts on the Node with SSM Document.
 	 * i.e: runPsCommands(["Write-host 'Hello world'", "Write-host 'Second command'"], "myScript")
 	 */
   runPsCommands(psCommands: string[], id: string) {
@@ -159,6 +224,8 @@ export class WindowsNode extends Construct {
         commands: psCommands,
       },
       targets: [{ key: 'InstanceIds', values: [this.instance.instanceId] }],
+      maxErrors: '5',
+      maxConcurrency: '1',
     });
   }
   /**
@@ -173,6 +240,11 @@ export class WindowsNode extends Construct {
     );
   }
 
+  /**
+	 * Running PowerShell scripts on the Node with SSM Document with Domain Admin (Using the Secret used to join the machine to the domain)
+	 * i.e: runPsCommands(["Write-host 'Hello world'", "Write-host 'Second command'"], "myScript")
+	 * The provided psCommands will be stored in C:\Scripts and will be run with scheduled task with Domain Admin rights
+	 */
   runPSwithDomainAdmin(psCommands: string[], id: string) {
     var commands = ['$oneTimePS = {'];
     psCommands.forEach((command: string) => {
@@ -193,7 +265,7 @@ export class WindowsNode extends Construct {
       '$action = New-ScheduledTaskAction -Execute "Powershell.exe" -Argument $tempScriptPath',
       '$trigger =  New-ScheduledTaskTrigger -Once -At (get-date).AddSeconds(10); ',
       '$trigger.EndBoundary = (get-date).AddSeconds(60).ToString("s") ',
-      'Register-ScheduledTask -Force -Action $action -Trigger $trigger -TaskName "Task to run with DomainAdmin" -Description "Workaround to run the code with domain admin" -RunLevel Highest -User $username -Password $Secret.Password',
+      'Register-ScheduledTask -Force -Action $action -Trigger $trigger -TaskName "Task $PID to run with DomainAdmin" -Description "Workaround to run the code with domain admin" -RunLevel Highest -User $username -Password $Secret.Password',
     );
     new ssm.CfnAssociation(this, id, {
       name: 'AWS-RunPowerShellScript',
@@ -201,6 +273,8 @@ export class WindowsNode extends Construct {
         commands: commands,
       },
       targets: [{ key: 'InstanceIds', values: [this.instance.instanceId] }],
+      maxErrors: '5',
+      maxConcurrency: '1',
     });
   }
 }
