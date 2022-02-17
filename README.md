@@ -84,9 +84,9 @@ then each command will be scheduled with State Manager, and the instance will be
 Example:
 
 ```typescript
-new skylight.authentication.AdAuthentication(
+const ad = new skylight.authentication.AdAuthentication(
 	stack,
-	'AdAuthentication2',
+	'AdAuthentication',
 	{
 		vpc: vpc,
 		edition: 'enterprise', // Optional
@@ -96,6 +96,10 @@ new skylight.authentication.AdAuthentication(
 		createWorker: false, // Optional
 	},
 );
+ad.managedActiveDirectory.createADGroup(
+	"MyADGroup", // AD group name
+	"My AD Group Created by CDK-Skylight!" //AD Description
+	)
 ```
 
 ## Skylight-Storage
@@ -116,7 +120,7 @@ this.fsxWindows = new skylight.storage.FSxWindows(this, "FSx", {
 	vpc: vpc,
 	adParametersStore: adParametersStore
 });
-this.fsxWindows.createFolder("containerStorage");
+this.fsxWindows.createFolder("myFolderStorageOnFSx");
 ```
 
 # Very experimental Libraries 
