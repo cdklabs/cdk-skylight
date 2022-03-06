@@ -13,13 +13,9 @@
 
 // Imports
 import { aws_ec2 as ec2, aws_ssm, aws_fsx, aws_iam } from 'aws-cdk-lib';
-import {
-  AwsCustomResource,
-  AwsCustomResourcePolicy,
-} from 'aws-cdk-lib/custom-resources';
 import { Construct } from 'constructs';
+import * as skylight from '../index';
 import { IAdAuthenticationParameters } from '../skylight-authentication';
-import { DomainWindowsNode } from '../skylight-compute/index';
 
 /**
  * The properties for the PersistentStorage class.
@@ -89,7 +85,7 @@ export class FSxWindows extends Construct {
   readonly ssmParameters: IFSxWindowsParameters;
   readonly fsxObject: aws_fsx.CfnFileSystem;
   readonly props: IFSxWindowsProps;
-  readonly worker: DomainWindowsNode;
+  readonly worker: skylight.compute.DomainWindowsNode;
   constructor(scope: Construct, id: string, props: IFSxWindowsProps) {
     super(scope, id);
     this.props = props;
@@ -165,11 +161,11 @@ export class FSxWindows extends Construct {
 
   createWorker(
     adParametersStore: IAdAuthenticationParameters,
-  ): DomainWindowsNode {
-    return new DomainWindowsNode(this, 'worker', {
+  ): skylight.compute.DomainWindowsNode {
+    return new skylight.compute.DomainWindowsNode(this, 'worker', {
       madSsmParameters: adParametersStore,
       vpc: this.props.vpc,
-      instanceType: 't2.nano',
+      instanceType: 't3.small',
       iamManagedPoliciesList: [
         aws_iam.ManagedPolicy.fromAwsManagedPolicyName(
           'AmazonSSMManagedInstanceCore',
@@ -185,21 +181,7 @@ export class FSxWindows extends Construct {
   }
 
   createFolder(folderName: string) {
-    new AwsCustomResource(this, 'start-instance-needed', {
-      policy: AwsCustomResourcePolicy.fromSdkCalls({
-        resources: AwsCustomResourcePolicy.ANY_RESOURCE,
-      }),
-      onUpdate: {
-        service: 'EC2',
-        action: 'startInstances', // https://docs.aws.amazon.com/AWSJavaScriptSDK/latest/AWS/EC2.html#startInstances-property
-        parameters: {
-          InstanceIds: [this.worker.instance.instanceId],
-        },
-        physicalResourceId: {
-          id: 'startInstance-' + folderName,
-        },
-      },
-    });
+    this.worker.startInstance();
     const secretName = aws_ssm.StringParameter.valueForStringParameter(
       this,
       `/${this.props.adParametersStore.namespace}/${this.props.adParametersStore.secretPointer}`,

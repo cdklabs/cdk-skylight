@@ -21,8 +21,7 @@ import {
 } from 'aws-cdk-lib';
 import { AutoScalingGroup } from 'aws-cdk-lib/aws-autoscaling';
 import { Construct } from 'constructs';
-import { IAdAuthenticationParameters } from '../../skylight-authentication';
-import { IFSxWindowsParameters } from '../../skylight-storage';
+import * as skylight from '../../index';
 
 export interface IRuntimeNodes {
   /**
@@ -34,13 +33,13 @@ export interface IRuntimeNodes {
 	 * Secret: The secrets manager secret to use must be in format:
 	 * '{Domain: <domain.name>, UserID: 'Admin', Password: '<password>'}' (From cdk-skylight.AdAuthentication Object)
 	 */
-  addAdDependency?(adParametersStore: IAdAuthenticationParameters): void;
+  addAdDependency?(adParametersStore: skylight.authentication.IAdAuthenticationParameters): void;
   /**
 	 * Method to configure persistent storage dependency to the hosts by using Global Mapping.
 	 */
   addStorageDependency(
-    adParametersStore: IAdAuthenticationParameters,
-    fsxParametersStore: IFSxWindowsParameters,
+    adParametersStore: skylight.authentication.IAdAuthenticationParameters,
+    fsxParametersStore: skylight.storage.IFSxWindowsParameters,
     folderName: string
   ): void;
 
@@ -53,7 +52,7 @@ export interface IRuntimeNodes {
 	 * Method to add support for LocalCredFile <Experimental>
 	 */
   addLocalCredFile?(
-    adParametersStore: IAdAuthenticationParameters,
+    adParametersStore: skylight.authentication.IAdAuthenticationParameters,
     ADGroupName: string,
     AccountName: string
   ): void;
@@ -78,6 +77,8 @@ export class WindowsEKSNodes extends Construct implements IRuntimeNodes {
   readonly asg: AutoScalingGroup;
   readonly windowsWorkersRole: aws_iam.Role;
   readonly asgResource: aws_autoscaling.CfnAutoScalingGroup;
+  readonly vpc : aws_ec2.IVpc;
+  readonly nodesSg: aws_ec2.SecurityGroup;
 
   constructor(scope: Construct, id: string, props: IWindowsEKSNodesProps) {
     super(scope, id);
@@ -86,16 +87,18 @@ export class WindowsEKSNodes extends Construct implements IRuntimeNodes {
     props.instanceType =
 			props.instanceType ?? new aws_ec2.InstanceType('m5.large');
 
+    this.vpc = props.vpc;
+
     const windows_machineImage = new aws_ec2.LookupMachineImage({
       name: '*Windows_Server-2019-English-Full-EKS_Optimized-1.21*',
       windows: true,
     });
 
-    const eks_security_group = new aws_ec2.SecurityGroup(
+    this.nodesSg = new aws_ec2.SecurityGroup(
       this,
       id + '-securityGroup',
       {
-        vpc: props.vpc,
+        vpc: this.vpc,
       },
     );
     this.windowsWorkersRole = new aws_iam.Role(
@@ -140,7 +143,7 @@ export class WindowsEKSNodes extends Construct implements IRuntimeNodes {
         vpc: props.vpc,
         role: this.windowsWorkersRole,
         minCapacity: 2,
-        securityGroup: eks_security_group,
+        securityGroup: this.nodesSg,
         maxCapacity: 10,
         instanceType: props.instanceType,
         machineImage: windows_machineImage,
@@ -158,7 +161,7 @@ export class WindowsEKSNodes extends Construct implements IRuntimeNodes {
     this.asg.addUserData(...commands);
   }
 
-  addAdDependency(adParametersStore: IAdAuthenticationParameters) {
+  addAdDependency(adParametersStore: skylight.authentication.IAdAuthenticationParameters) {
     const secretName = aws_ssm.StringParameter.valueForStringParameter(
       this,
       `/${adParametersStore.namespace}/${adParametersStore.secretPointer}`,
@@ -192,9 +195,101 @@ export class WindowsEKSNodes extends Construct implements IRuntimeNodes {
     });
   }
 
+  gMSAWebHookAutoInstall(eksCluster: aws_eks.Cluster, privateSignerName: string, awsaccountid: string, awsregion: string) {
+    const certmanager = new aws_iam.ManagedPolicy(this, 'webHookECR',
+      {
+        description: 'Allow WebHook',
+        statements:
+      [
+        new aws_iam.PolicyStatement({
+          effect: aws_iam.Effect.ALLOW,
+          actions: [
+            'ecr:CreateRepository',
+            'ecr:DescribeImages',
+            'ecr:GetAuthorizationToken',
+            'ecr:GetDownloadUrlForLayer',
+            'ecr:BatchGetImage',
+            'ecr:BatchCheckLayerAvailability',
+            'ecr:GetDownloadUrlForLayer',
+            'ecr:PutImage',
+            'ecr:InitiateLayerUpload',
+            'ecr:UploadLayerPart',
+            'ecr:CompleteLayerUpload',
+          ],
+          resources: ['arn:aws:ecr:*:*:repository/certmanager-ca-controller'],
+        }),
+      ],
+      });
+
+    const describeCluster = new aws_iam.ManagedPolicy(this, 'AllowWebHookEKSCluster',
+      {
+        description: 'Allow WebHook',
+        statements:
+      [
+        new aws_iam.PolicyStatement({
+          effect: aws_iam.Effect.ALLOW,
+          actions: [
+            'eks:DescribeCluster',
+          ],
+          resources: [`arn:aws:eks:*:${awsaccountid}:cluster/*`],
+        }),
+      ],
+      });
+
+    const allowAuthorizationToken = new aws_iam.ManagedPolicy(this, 'AllowWebHookECRCluster',
+      {
+        description: 'Allow WebHook',
+        statements:
+      [
+        new aws_iam.PolicyStatement({
+          effect: aws_iam.Effect.ALLOW,
+          actions: [
+            'ecr:GetAuthorizationToken',
+          ],
+          resources: ['*'],
+        }),
+      ],
+      });
+
+    const node = new skylight.compute.DomainWindowsNode(this, 'eksWorkerForGMSA', {
+      vpc: this.vpc,
+      domainJoin: false,
+      windowsMachine: false,
+      iamManagedPoliciesList:
+      [
+        certmanager,
+        describeCluster,
+        allowAuthorizationToken,
+        aws_iam.ManagedPolicy.fromAwsManagedPolicyName(
+          'AmazonSSMManagedInstanceCore',
+        ),
+      ],
+
+      amiName: '*amzn2-ami-hvm-x86_64*',
+      instanceType: 't3.small',
+    });
+
+    this.asg.connections.allowFrom(node.instance, aws_ec2.Port.tcp(443));
+
+    eksCluster.awsAuth.addRoleMapping(node.nodeRole, {
+      groups: [
+        'system:masters',
+      ],
+      username: 'admin',
+    });
+
+    node.runShellCommands([
+      'sudo -i',
+      'yum install -y git',
+      'git clone https://github.com/aws-samples/amazon-eks-gmsa-admission-webhook-autoinstall',
+      'cd amazon-eks-gmsa-admission-webhook-autoinstall/',
+      `bash installation.sh ${awsaccountid} ${awsregion} ${eksCluster.clusterName} ${privateSignerName}/my-signer AL2`,
+    ], 'webHookInstallation');
+  }
+
   addStorageDependency(
-    adParametersStore: IAdAuthenticationParameters,
-    fsxParametersStore: IFSxWindowsParameters,
+    adParametersStore: skylight.authentication.IAdAuthenticationParameters,
+    fsxParametersStore: skylight.storage.IFSxWindowsParameters,
     folderName: string,
   ) {
     const secretName = aws_ssm.StringParameter.valueForStringParameter(
@@ -261,7 +356,7 @@ export class WindowsEKSNodes extends Construct implements IRuntimeNodes {
   }
 
   addLocalCredFile(
-    adParametersStore: IAdAuthenticationParameters,
+    adParametersStore: skylight.authentication.IAdAuthenticationParameters,
     ADGroupName: string,
     AccountName: string,
   ) {

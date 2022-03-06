@@ -21,8 +21,9 @@ import {
   Stack,
   Fn,
 } from 'aws-cdk-lib';
+import { AwsCustomResource, AwsCustomResourcePolicy } from 'aws-cdk-lib/custom-resources';
 import { Construct } from 'constructs';
-import { IAdAuthenticationParameters } from '../skylight-authentication';
+import * as skylight from '../index';
 
 /**
  * The properties of an DomainWindowsNodeProps, requires Active Directory parameter to read the Secret to join the domain
@@ -60,19 +61,30 @@ export interface IDomainWindowsNodeProps {
 	 *  @default - 'No default'
 	 */
   userData?: string;
+
+  /**
+   * @default - 'true'
+   */
+  domainJoin?: boolean;
+
+  /**
+   * @default - 'true'
+   */
+  windowsMachine?: boolean;
+
   /**
 	 * The VPC to use
 	 */
   vpc: ec2.IVpc;
 
   /**
-	 * The Managed AD Parameter store to use, should contain the secret name (Secrets manager) and the namespace to find the secret.
+	 * The Managed AD Parameter store to use (only when domainJoin = True), should contain the secret name (Secrets manager) and the namespace to find the secret.
 	 * i.e: {namespace = "cdk-skylight", secretPointer = "mad-secret"}.
 	 * Please note: `secretPointer` is the name of the SSM parameter and not the secret name. The secret name should be stored in the provided parameter.
 	 *
 	 * @default - 'No default'.
 	 */
-  madSsmParameters: IAdAuthenticationParameters;
+  madSsmParameters?: skylight.authentication.IAdAuthenticationParameters;
 }
 
 /**
@@ -103,18 +115,25 @@ export class DomainWindowsNode extends Construct {
 
     props.usePrivateSubnet = props.usePrivateSubnet ?? false;
     props.userData = props.userData ?? '';
+    props.domainJoin = props.domainJoin ?? true;
+    props.windowsMachine = props.windowsMachine ?? true;
 
     this.vpc = props.vpc;
 
-    // Look for the secret to join the Managed AD
-    this.secretName = aws_ssm.StringParameter.valueForStringParameter(
-      this,
-      `/${props.madSsmParameters.namespace}/${props.madSsmParameters.secretPointer}`,
-    );
+    if (props.domainJoin) {
+      props.madSsmParameters = props.madSsmParameters!;
+      // Look for the secret to join the Managed AD
+      this.secretName = aws_ssm.StringParameter.valueForStringParameter(
+        this,
+        `/${props.madSsmParameters.namespace}/${props.madSsmParameters.secretPointer}`,
+      );
+    } else {
+      this.secretName = '';
+    }
 
     const nodeImage = new ec2.LookupMachineImage({
       name: props.amiName ?? '*Windows_Server-2022-English-Full*',
-      windows: true,
+      windows: props.windowsMachine,
     });
 
     this.nodeRole = new iam.Role(this, id + '-instance-role', {
@@ -129,78 +148,95 @@ export class DomainWindowsNode extends Construct {
     // Setting static logical ID for the Worker, to allow further customization
     const workerName = 'ec2InstanceWorker';
 
-    // Create CloudFormation Config set to allow the Domain join report back to Cloudformation only after reboot.
-    const config = ec2.CloudFormationInit.fromConfigSets({
-      configSets: {
-        domainJoinRestart: ['domainJoin', 'signal'],
-      },
-      configs: {
-        domainJoin: new ec2.InitConfig([
-          ec2.InitCommand.shellCommand(
-            // Step1 : Domain Join using the Secret provided
-            `powershell.exe -command  "Invoke-Command -ScriptBlock {[string]$SecretAD  = '${this.secretName}' ;$SecretObj = Get-SECSecretValue -SecretId $SecretAD ;[PSCustomObject]$Secret = ($SecretObj.SecretString  | ConvertFrom-Json) ;$password   = $Secret.Password | ConvertTo-SecureString -asPlainText -Force ;$username   = $Secret.UserID + '@' + $Secret.Domain ;$credential = New-Object System.Management.Automation.PSCredential($username,$password) ;Add-Computer -DomainName $Secret.Domain -Credential $credential; Restart-Computer -Force}"`,
-            {
-              waitAfterCompletion: ec2.InitCommandWaitDuration.forever(),
-            },
-          ),
-        ]),
-        signal: new ec2.InitConfig([
-          ec2.InitCommand.shellCommand(
-            // Step 3: CloudFormation signal
-            `cfn-signal.exe --success=true --resource=${workerName} --stack=${
-              Stack.of(this).stackName
-            } --region=${Stack.of(this).region}`,
-            {
-              waitAfterCompletion: ec2.InitCommandWaitDuration.none(),
-            },
-          ),
-        ]),
-      },
-    });
-    const attachInitOptions: ec2.AttachInitOptions = {
-      platform: ec2.OperatingSystemType.WINDOWS,
-      configSets: ['domainJoinRestart'],
-      instanceRole: this.nodeRole,
-      userData: aws_ec2.UserData.custom(''),
-      embedFingerprint: false,
-    };
+    if (props.domainJoin) {
+      // Create CloudFormation Config set to allow the Domain join report back to Cloudformation only after reboot.
+      const config = ec2.CloudFormationInit.fromConfigSets({
+        configSets: {
+          domainJoinRestart: ['domainJoin', 'signal'],
+        },
+        configs: {
+          domainJoin: new ec2.InitConfig([
+            ec2.InitCommand.shellCommand(
+              // Step1 : Domain Join using the Secret provided
+              `powershell.exe -command  "Invoke-Command -ScriptBlock {[string]$SecretAD  = '${this.secretName}' ;$SecretObj = Get-SECSecretValue -SecretId $SecretAD ;[PSCustomObject]$Secret = ($SecretObj.SecretString  | ConvertFrom-Json) ;$password   = $Secret.Password | ConvertTo-SecureString -asPlainText -Force ;$username   = $Secret.UserID + '@' + $Secret.Domain ;$credential = New-Object System.Management.Automation.PSCredential($username,$password) ;Add-Computer -DomainName $Secret.Domain -Credential $credential; Restart-Computer -Force}"`,
+              {
+                waitAfterCompletion: ec2.InitCommandWaitDuration.forever(),
+              },
+            ),
+          ]),
+          signal: new ec2.InitConfig([
+            ec2.InitCommand.shellCommand(
+              // Step 3: CloudFormation signal
+              `cfn-signal.exe --success=true --resource=${workerName} --stack=${
+                Stack.of(this).stackName
+              } --region=${Stack.of(this).region}`,
+              {
+                waitAfterCompletion: ec2.InitCommandWaitDuration.none(),
+              },
+            ),
+          ]),
+        },
+      });
+      const attachInitOptions: ec2.AttachInitOptions = {
+        platform: ec2.OperatingSystemType.WINDOWS,
+        configSets: ['domainJoinRestart'],
+        instanceRole: this.nodeRole,
+        userData: aws_ec2.UserData.custom(''),
+        embedFingerprint: false,
+      };
 
-    this.instance = new ec2.Instance(this, id + '-ec2instance', {
-      instanceType: new ec2.InstanceType(props.instanceType ?? 'm5.large'),
-      machineImage: nodeImage,
-      vpc: this.vpc,
-      role: this.nodeRole,
-      securityGroup: securityGroup,
-      vpcSubnets: this.vpc.selectSubnets({
-        subnetType: props.usePrivateSubnet
-          ? ec2.SubnetType.PRIVATE_WITH_NAT
-          : ec2.SubnetType.PUBLIC,
-        onePerAz: true,
-      }),
-      init: config,
-      initOptions: attachInitOptions,
-    });
+      this.instance = new ec2.Instance(this, id + '-ec2instance', {
+        instanceType: new ec2.InstanceType(props.instanceType ?? 'm5.large'),
+        machineImage: nodeImage,
+        vpc: this.vpc,
+        role: this.nodeRole,
+        securityGroup: securityGroup,
+        vpcSubnets: this.vpc.selectSubnets({
+          subnetType: props.usePrivateSubnet
+            ? ec2.SubnetType.PRIVATE_WITH_NAT
+            : ec2.SubnetType.PUBLIC,
+          onePerAz: true,
+        }),
+        init: config,
+        initOptions: attachInitOptions,
+      });
 
-    // Override the logical ID name so it can be refereed before initialized
-    const CfnInstance = this.instance.node.defaultChild as ec2.CfnInstance;
-    CfnInstance.overrideLogicalId(workerName);
+      // Override the logical ID name so it can be refereed before initialized
+      const CfnInstance = this.instance.node.defaultChild as ec2.CfnInstance;
+      CfnInstance.overrideLogicalId(workerName);
 
-    // Override the default UserData script to execute only the cfn-init (without cfn-signal) as we want cfn-signal to be executed after reboot. More details here: https://aws.amazon.com/premiumsupport/knowledge-center/create-complete-bootstrapping/
-    CfnInstance.userData = Fn.base64(
-      `<powershell>cfn-init.exe -v -s ${
-        Stack.of(this).stackName
-      } -r ${workerName} --configsets=domainJoinRestart --region ${
-        Stack.of(this).region
-      }</powershell>`,
-    );
+      // Override the default UserData script to execute only the cfn-init (without cfn-signal) as we want cfn-signal to be executed after reboot. More details here: https://aws.amazon.com/premiumsupport/knowledge-center/create-complete-bootstrapping/
+      CfnInstance.userData = Fn.base64(
+        `<powershell>cfn-init.exe -v -s ${
+          Stack.of(this).stackName
+        } -r ${workerName} --configsets=domainJoinRestart --region ${
+          Stack.of(this).region
+        }</powershell>`,
+      );
 
-    // Override the default 5M timeout to support longer Windows boot time
-    CfnInstance.cfnOptions.creationPolicy = {
-      resourceSignal: {
-        count: 1,
-        timeout: 'PT30M',
-      },
-    };
+      // Override the default 5M timeout to support longer Windows boot time
+      CfnInstance.cfnOptions.creationPolicy = {
+        resourceSignal: {
+          count: 1,
+          timeout: 'PT30M',
+        },
+      };
+    } else {
+      this.instance = new ec2.Instance(this, id + '-ec2instance', {
+        instanceType: new ec2.InstanceType(props.instanceType ?? 'm5.large'),
+        machineImage: nodeImage,
+        vpc: this.vpc,
+        role: this.nodeRole,
+        securityGroup: securityGroup,
+        vpcSubnets: this.vpc.selectSubnets({
+          subnetType: props.usePrivateSubnet
+            ? ec2.SubnetType.PRIVATE_WITH_NAT
+            : ec2.SubnetType.PUBLIC,
+          onePerAz: true,
+        }),
+      });
+    }
+
 
     // Append the user data
     if (props.userData != '') {
@@ -209,6 +245,22 @@ export class DomainWindowsNode extends Construct {
 
     new CfnOutput(this, id + '-stack-output', {
       value: `InstanceId: ${this.instance.instanceId}; dnsName: ${this.instance.instancePublicDnsName}`,
+    });
+  }
+
+  /**
+	 * Running bash scripts on the Node with SSM Document.
+	 * i.e: runPsCommands(["echo 'hello world'", "echo 'Second command'"], "myScript")
+	 */
+  runShellCommands(ShellCommands: string[], id: string) {
+    new ssm.CfnAssociation(this, id, {
+      name: 'AWS-RunShellScript',
+      parameters: {
+        commands: ShellCommands,
+      },
+      targets: [{ key: 'InstanceIds', values: [this.instance.instanceId] }],
+      maxErrors: '5',
+      maxConcurrency: '1',
     });
   }
 
@@ -274,6 +326,24 @@ export class DomainWindowsNode extends Construct {
       targets: [{ key: 'InstanceIds', values: [this.instance.instanceId] }],
       maxErrors: '5',
       maxConcurrency: '1',
+    });
+  }
+
+  startInstance() {
+    new AwsCustomResource(this, 'start-instance-needed-'+ this.instance.instanceId, {
+      policy: AwsCustomResourcePolicy.fromSdkCalls({
+        resources: AwsCustomResourcePolicy.ANY_RESOURCE,
+      }),
+      onUpdate: {
+        service: 'EC2',
+        action: 'startInstances', // https://docs.aws.amazon.com/AWSJavaScriptSDK/latest/AWS/EC2.html#startInstances-property
+        parameters: {
+          InstanceIds: [this.instance.instanceId],
+        },
+        physicalResourceId: {
+          id: 'startInstance-' + this.instance.instanceId,
+        },
+      },
     });
   }
 }

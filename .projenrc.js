@@ -6,7 +6,7 @@ const project = new awscdk.AwsCdkConstructLibrary({
   cdkVersion: '2.1.0',
   defaultReleaseBranch: 'main',
   name: 'cdk-skylight',
-  repositoryUrl: 'https://github.com/cdklabscdk-skylight.git',
+  repositoryUrl: 'https://github.com/cdklabs/cdk-skylight.git',
   peerDeps: ['constructs', 'aws-cdk-lib'],
   gitignore: ['.DS_Store'],
   autoApproveProjenUpgrades: true,

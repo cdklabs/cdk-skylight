@@ -241,7 +241,7 @@ export class AdAuthentication extends Construct {
     return new skylight.compute.DomainWindowsNode(this, 'madWorker', {
       madSsmParameters: adParametersStore,
       vpc: this.props.vpc,
-      instanceType: 't2.nano',
+      instanceType: 't3.small',
     });
   }
 
