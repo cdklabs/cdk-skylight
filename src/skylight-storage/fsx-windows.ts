@@ -15,7 +15,7 @@
 import { aws_ec2 as ec2, aws_ssm, aws_fsx, aws_iam } from 'aws-cdk-lib';
 import { Construct } from 'constructs';
 import * as skylight from '../index';
-import { IAdAuthenticationParameters } from '../skylight-authentication';
+import { IAwsManagedMicrosoftAdParameters } from '../skylight-authentication';
 
 /**
  * The properties for the PersistentStorage class.
@@ -49,7 +49,7 @@ export interface IFSxWindowsProps {
 	 * The VPC to use, must have private subnets.
 	 */
 
-  adParametersStore: IAdAuthenticationParameters;
+  adParametersStore: IAwsManagedMicrosoftAdParameters;
 
   vpc: ec2.IVpc;
 
@@ -160,7 +160,7 @@ export class FSxWindows extends Construct {
   }
 
   createWorker(
-    adParametersStore: IAdAuthenticationParameters,
+    adParametersStore: IAwsManagedMicrosoftAdParameters,
   ): skylight.compute.DomainWindowsNode {
     return new skylight.compute.DomainWindowsNode(this, 'worker', {
       madSsmParameters: adParametersStore,

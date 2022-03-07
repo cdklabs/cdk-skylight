@@ -29,9 +29,9 @@ import {
 import { Construct } from 'constructs';
 import * as skylight from '../index';
 /**
- * The properties for the AdAuthentication class.
+ * The properties for the AwsManagedMicrosoftAd class.
  */
-export interface IADAuthenticationProps {
+export interface IAwsManagedMicrosoftAdProps {
   /**
 	 * The domain name for the Active Directory Domain.
 	 *
@@ -61,7 +61,7 @@ export interface IADAuthenticationProps {
 	 */
   vpc: ec2.IVpc;
 
-  ssmParameters?: IAdAuthenticationParameters;
+  ssmParameters?: IAwsManagedMicrosoftAdParameters;
 
   /**
 	 * Create Domain joined machine to be used to run Powershell commands to that directory. (i.e Create Ad Group)
@@ -74,7 +74,7 @@ export interface IADAuthenticationProps {
  * The properties of an DomainWindowsNodeProps, requires Active Directory parameter to read the Secret to join the domain
  * Default setting: Domain joined, m5.2xlarge, latest windows, Managed by SSM.
  */
-export interface IAdAuthenticationParameters {
+export interface IAwsManagedMicrosoftAdParameters {
   /**
 	 * The name of the SSM Object that contains the secret name in Secrets Manager
 	 * @default - 'domain-secret'.
@@ -107,13 +107,13 @@ export interface IAdAuthenticationParameters {
  * then each command will be scheduled with State Manager, and the instance will be shut down after complete.
  *
  */
-export class AdAuthentication extends Construct {
+export class AwsManagedMicrosoftAd extends Construct {
   readonly adObject: CfnMicrosoftAD;
-  readonly ssmParameters: IAdAuthenticationParameters;
-  readonly props: IADAuthenticationProps;
+  readonly ssmParameters: IAwsManagedMicrosoftAdParameters;
+  readonly props: IAwsManagedMicrosoftAdProps;
   readonly worker?: skylight.compute.DomainWindowsNode;
 
-  constructor(scope: Construct, id: string, props: IADAuthenticationProps) {
+  constructor(scope: Construct, id: string, props: IAwsManagedMicrosoftAdProps) {
     super(scope, id);
     this.props = props;
     this.props.domainName = props.domainName ?? 'domain.aws';
@@ -236,7 +236,7 @@ export class AdAuthentication extends Construct {
 
   // Creates DomainWindowsNode that will be used to run admin-tasks to this directory
   createWorker(
-    adParametersStore: IAdAuthenticationParameters,
+    adParametersStore: IAwsManagedMicrosoftAdParameters,
   ): skylight.compute.DomainWindowsNode {
     return new skylight.compute.DomainWindowsNode(this, 'madWorker', {
       madSsmParameters: adParametersStore,

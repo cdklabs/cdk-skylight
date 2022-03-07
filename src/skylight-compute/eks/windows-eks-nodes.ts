@@ -31,14 +31,14 @@ export interface IRuntimeNodes {
   /**
 	 * Method to configure the Nodes to part of AD Domain
 	 * Secret: The secrets manager secret to use must be in format:
-	 * '{Domain: <domain.name>, UserID: 'Admin', Password: '<password>'}' (From cdk-skylight.AdAuthentication Object)
+	 * '{Domain: <domain.name>, UserID: 'Admin', Password: '<password>'}' (From cdk-skylight.AwsManagedMicrosoftAd Object)
 	 */
-  addAdDependency?(adParametersStore: skylight.authentication.IAdAuthenticationParameters): void;
+  addAdDependency?(adParametersStore: skylight.authentication.IAwsManagedMicrosoftAdParameters): void;
   /**
 	 * Method to configure persistent storage dependency to the hosts by using Global Mapping.
 	 */
   addStorageDependency(
-    adParametersStore: skylight.authentication.IAdAuthenticationParameters,
+    adParametersStore: skylight.authentication.IAwsManagedMicrosoftAdParameters,
     fsxParametersStore: skylight.storage.IFSxWindowsParameters,
     folderName: string
   ): void;
@@ -52,7 +52,7 @@ export interface IRuntimeNodes {
 	 * Method to add support for LocalCredFile <Experimental>
 	 */
   addLocalCredFile?(
-    adParametersStore: skylight.authentication.IAdAuthenticationParameters,
+    adParametersStore: skylight.authentication.IAwsManagedMicrosoftAdParameters,
     ADGroupName: string,
     AccountName: string
   ): void;
@@ -161,7 +161,7 @@ export class WindowsEKSNodes extends Construct implements IRuntimeNodes {
     this.asg.addUserData(...commands);
   }
 
-  addAdDependency(adParametersStore: skylight.authentication.IAdAuthenticationParameters) {
+  addAdDependency(adParametersStore: skylight.authentication.IAwsManagedMicrosoftAdParameters) {
     const secretName = aws_ssm.StringParameter.valueForStringParameter(
       this,
       `/${adParametersStore.namespace}/${adParametersStore.secretPointer}`,
@@ -288,7 +288,7 @@ export class WindowsEKSNodes extends Construct implements IRuntimeNodes {
   }
 
   addStorageDependency(
-    adParametersStore: skylight.authentication.IAdAuthenticationParameters,
+    adParametersStore: skylight.authentication.IAwsManagedMicrosoftAdParameters,
     fsxParametersStore: skylight.storage.IFSxWindowsParameters,
     folderName: string,
   ) {
@@ -356,7 +356,7 @@ export class WindowsEKSNodes extends Construct implements IRuntimeNodes {
   }
 
   addLocalCredFile(
-    adParametersStore: skylight.authentication.IAdAuthenticationParameters,
+    adParametersStore: skylight.authentication.IAwsManagedMicrosoftAdParameters,
     ADGroupName: string,
     AccountName: string,
   ) {

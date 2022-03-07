@@ -31,7 +31,7 @@ In your CDK App
 ```typescript
 import * as skylight from "cdk-skylight";
 
-new skylight.authentication.AdAuthentication(scope: Construct, id: string, props: IADAuthenticationProps)
+new skylight.authentication.AwsManagedMicrosoftAd(scope: Construct, id: string, props: IAwsManagedMicrosoftAdProps)
 
 ```
 
@@ -72,7 +72,7 @@ windowsNodeObject.openRDP('1.1.1.1/32');
 
 Library of Custom Authentication components 
 
-### **AdAuthentication** - Manged Active Directory with R53 Resolvers 
+### **AwsManagedMicrosoftAd** - Manged Active Directory with R53 Resolvers 
 
 A Ad Authentication represents an integration pattern of Managed AD and Route 53 Resolver in a specific VPC, it will create Managed AD with the provided Secret (Secrets Manager) or generates a new Secret.
 
@@ -88,9 +88,9 @@ then each command will be scheduled with State Manager, and the instance will be
 Example:
 
 ```typescript
-const ad = new skylight.authentication.AdAuthentication(
+const ad = new skylight.authentication.AwsManagedMicrosoftAd(
 	stack,
-	'AdAuthentication',
+	'AwsManagedMicrosoftAd',
 	{
 		vpc: vpc,
 		edition: 'enterprise', // Optional

@@ -11,16 +11,16 @@ const stack = new Stack(app, 'test', { env: env });
 const vpc = new aws_ec2.Vpc(stack, 'vpc', {});
 
 test('authentication', () => {
-  const mad = new skylight.authentication.AdAuthentication(
+  const mad = new skylight.authentication.AwsManagedMicrosoftAd(
     stack,
-    'AdAuthentication',
+    'AwsManagedMicrosoftAd',
     {
       vpc: vpc,
     },
   );
-  const mad2 = new skylight.authentication.AdAuthentication(
+  const mad2 = new skylight.authentication.AwsManagedMicrosoftAd(
     stack,
-    'AdAuthentication2',
+    'AwsManagedMicrosoftAd2',
     {
       vpc: vpc,
       edition: 'enterprise',
@@ -31,9 +31,9 @@ test('authentication', () => {
     },
   );
   mad2.createServiceAccount('test1', 'test2', 'Test3');
-  const mad3 = new skylight.authentication.AdAuthentication(
+  const mad3 = new skylight.authentication.AwsManagedMicrosoftAd(
     stack,
-    'AdAuthentication3',
+    'AwsManagedMicrosoftAd3',
     {
       vpc: vpc,
       edition: 'enterprise',

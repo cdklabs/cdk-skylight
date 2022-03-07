@@ -84,7 +84,7 @@ export interface IDomainWindowsNodeProps {
 	 *
 	 * @default - 'No default'.
 	 */
-  madSsmParameters?: skylight.authentication.IAdAuthenticationParameters;
+  madSsmParameters?: skylight.authentication.IAwsManagedMicrosoftAdParameters;
 }
 
 /**
