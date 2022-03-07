@@ -22,6 +22,7 @@ import {
   Fn,
 } from 'aws-cdk-lib';
 import { CfnMicrosoftAD } from 'aws-cdk-lib/aws-directoryservice';
+import { ISecret } from 'aws-cdk-lib/aws-secretsmanager';
 import {
   AwsCustomResource,
   AwsCustomResourcePolicy,
@@ -33,40 +34,40 @@ import * as skylight from '../index';
  */
 export interface IAwsManagedMicrosoftAdProps {
   /**
-	 * The domain name for the Active Directory Domain.
-	 *
-	 * @default - 'domain.aws'.
-	 */
+   * The domain name for the Active Directory Domain.
+   *
+   * @default - 'domain.aws'.
+   */
   domainName?: string;
   /**
-	 * The edition to use for the Active Directory Domain.
-	 * Allowed values: Enterprise | Standard
-	 * https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-directoryservice-microsoftad.html#cfn-directoryservice-microsoftad-edition
-	 * @default - 'Standard'.
-	 */
+   * The edition to use for the Active Directory Domain.
+   * Allowed values: Enterprise | Standard
+   * https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-directoryservice-microsoftad.html#cfn-directoryservice-microsoftad-edition
+   * @default - 'Standard'.
+   */
   edition?: string;
   /**
-	 * The secrets manager secret to use must be in format:
-	 * '{Domain: <domain.name>, UserID: 'Admin', Password: '<password>'}'
-	 * @default - 'Randomly generated and stored in Secret Manager'.
-	 */
+   * The secrets manager secret to use must be in format:
+   * '{Domain: <domain.name>, UserID: 'Admin', Password: '<password>'}'
+   * @default - 'Randomly generated and stored in Secret Manager'.
+   */
   secret?: secretsmanager.ISecret;
   /**
-	 * The secret name to save the Domain Admin object
-	 * @default - '<domain.name>-secret'.
-	 */
+   * The secret name to save the Domain Admin object
+   * @default - '<domain.name>-secret'.
+   */
   secretName?: string;
   /**
-	 * The VPC to use, must have private subnets.
-	 */
+   * The VPC to use, must have private subnets.
+   */
   vpc: ec2.IVpc;
 
   ssmParameters?: IAwsManagedMicrosoftAdParameters;
 
   /**
-	 * Create Domain joined machine to be used to run Powershell commands to that directory. (i.e Create Ad Group)
-	 * @default - 'true'.
-	 */
+   * Create Domain joined machine to be used to run Powershell commands to that directory. (i.e Create Ad Group)
+   * @default - 'true'.
+   */
   createWorker?: boolean;
 }
 
@@ -76,21 +77,21 @@ export interface IAwsManagedMicrosoftAdProps {
  */
 export interface IAwsManagedMicrosoftAdParameters {
   /**
-	 * The name of the SSM Object that contains the secret name in Secrets Manager
-	 * @default - 'domain-secret'.
-	 */
+   * The name of the SSM Object that contains the secret name in Secrets Manager
+   * @default - 'domain-secret'.
+   */
   secretPointer?: string;
 
   /**
-	 * The name of the SSM Object that contains the Directory ID
-	 * @default - 'directoryID'.
-	 */
+   * The name of the SSM Object that contains the Directory ID
+   * @default - 'directoryID'.
+   */
   directoryIDPointer?: string;
 
   /**
-	 * The SSM namespace to read/write parameters to
-	 * @default - 'cdk-skylight'.
-	 */
+   * The SSM namespace to read/write parameters to
+   * @default - 'cdk-skylight'.
+   */
   namespace?: string;
 }
 
@@ -112,8 +113,12 @@ export class AwsManagedMicrosoftAd extends Construct {
   readonly ssmParameters: IAwsManagedMicrosoftAdParameters;
   readonly props: IAwsManagedMicrosoftAdProps;
   readonly worker?: skylight.compute.DomainWindowsNode;
-
-  constructor(scope: Construct, id: string, props: IAwsManagedMicrosoftAdProps) {
+  readonly secret: ISecret;
+  constructor(
+    scope: Construct,
+    id: string,
+    props: IAwsManagedMicrosoftAdProps,
+  ) {
     super(scope, id);
     this.props = props;
     this.props.domainName = props.domainName ?? 'domain.aws';
@@ -123,10 +128,10 @@ export class AwsManagedMicrosoftAd extends Construct {
 
     this.ssmParameters = props.ssmParameters ?? {};
     this.ssmParameters.secretPointer =
-			this.ssmParameters.secretPointer ?? 'domain-secret';
+      this.ssmParameters.secretPointer ?? 'domain-secret';
 
     this.ssmParameters.directoryIDPointer =
-			this.ssmParameters.directoryIDPointer ?? 'directoryID';
+      this.ssmParameters.directoryIDPointer ?? 'directoryID';
 
     if (this.ssmParameters.namespace) {
       this.ssmParameters.namespace = `${this.ssmParameters.namespace}/authentication/mad`;
@@ -134,32 +139,36 @@ export class AwsManagedMicrosoftAd extends Construct {
       this.ssmParameters.namespace = 'cdk-skylight/authentication/mad';
     }
 
-    const secret =
-			this.props.secret ??
-			new secretsmanager.Secret(this, `${id}-${props.domainName}-secret`, {
-			  generateSecretString: {
-			    secretStringTemplate: JSON.stringify({
-			      Domain: props.domainName,
-			      UserID: 'Admin',
-			    }),
-			    generateStringKey: 'Password',
-			    excludePunctuation: true,
-			  },
-			  secretName: props.secretName,
-			});
+    this.secret =
+      this.props.secret ??
+      new secretsmanager.Secret(this, 'Secret', {
+        generateSecretString: {
+          secretStringTemplate: JSON.stringify({
+            Domain: props.domainName,
+            UserID: 'Admin',
+          }),
+          generateStringKey: 'Password',
+          excludePunctuation: true,
+        },
+        secretName: props.secretName,
+      });
 
     new aws_ssm.StringParameter(this, 'mad-secretName-pointer', {
       parameterName: `/${this.ssmParameters.namespace}/${this.ssmParameters.secretPointer}`,
       stringValue: this.props.secretName,
     });
 
-    const subnets = props.vpc.selectSubnets({
-      subnetType: ec2.SubnetType.PRIVATE_WITH_NAT,
-    });
+    const subnets =
+      props.vpc.selectSubnets({
+        subnetType: ec2.SubnetType.PRIVATE_WITH_NAT,
+      }) ??
+      props.vpc.selectSubnets({
+        subnetType: ec2.SubnetType.PRIVATE_ISOLATED,
+      });
 
     new CfnOutput(this, id + '-SSM-GetSecret', {
       value: `aws secretsmanager get-secret-value --secret-id ${
-        secret.secretArn
+        this.secret.secretArn
       } --query SecretString --output text --region ${'region'}`, //need to fix the region
     });
 
@@ -167,7 +176,7 @@ export class AwsManagedMicrosoftAd extends Construct {
       this,
       id + '-managedDirectoryObject',
       {
-        password: secret.secretValueFromJson('Password').toString(),
+        password: this.secret.secretValueFromJson('Password').toString(),
         edition: props.edition,
         name: this.props.domainName,
         vpcSettings: {
@@ -224,10 +233,12 @@ export class AwsManagedMicrosoftAd extends Construct {
     );
 
     if (this.props.createWorker) {
-      this.worker = this.createWorker(this.ssmParameters);
+      this.worker = this.createWorker(this.props.domainName, this.secret);
       this.worker.runPSwithDomainAdmin(
         ['Add-WindowsFeature RSAT-AD-PowerShell'],
         'ad-powershell',
+        `admin@${this.props.domainName}`,
+        this.secret,
       );
     } else {
       this.worker = undefined;
@@ -236,10 +247,12 @@ export class AwsManagedMicrosoftAd extends Construct {
 
   // Creates DomainWindowsNode that will be used to run admin-tasks to this directory
   createWorker(
-    adParametersStore: IAwsManagedMicrosoftAdParameters,
+    domainName: string,
+    domainPassword: ISecret,
   ): skylight.compute.DomainWindowsNode {
     return new skylight.compute.DomainWindowsNode(this, 'madWorker', {
-      madSsmParameters: adParametersStore,
+      domainName: domainName,
+      domainPassword: domainPassword,
       vpc: this.props.vpc,
       instanceType: 't3.small',
     });
@@ -269,6 +282,8 @@ export class AwsManagedMicrosoftAd extends Construct {
           'Stop-Computer -ComputerName localhost',
         ],
         'createAdGroup',
+        `admin@${this.props.domainName}`,
+        this.secret,
       );
     } else {
       console.log("Can't create AD group when no Worker is defined");
@@ -287,6 +302,8 @@ export class AwsManagedMicrosoftAd extends Construct {
           `New-ADServiceAccount -Name "${adServiceAccountName}" -DnsHostName "${adServiceAccountName}.${this.props.domainName}" -ServicePrincipalNames "${servicePrincipalNames}" -PrincipalsAllowedToRetrieveManagedPassword "${principalsAllowedToRetrieveManagedPassword}"`,
         ],
         'createServiceAccount',
+        'admin',
+        this.secret,
       );
     } else {
       console.log("Can't createServiceAccount when no Worker is defined");

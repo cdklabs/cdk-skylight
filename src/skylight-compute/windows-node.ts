@@ -16,14 +16,17 @@ import {
   aws_ec2 as ec2,
   aws_ssm as ssm,
   CfnOutput,
-  aws_ssm,
   aws_ec2,
   Stack,
   Fn,
+  aws_secretsmanager,
 } from 'aws-cdk-lib';
-import { AwsCustomResource, AwsCustomResourcePolicy } from 'aws-cdk-lib/custom-resources';
+import { ISecret } from 'aws-cdk-lib/aws-secretsmanager';
+import {
+  AwsCustomResource,
+  AwsCustomResourcePolicy,
+} from 'aws-cdk-lib/custom-resources';
 import { Construct } from 'constructs';
-import * as skylight from '../index';
 
 /**
  * The properties of an DomainWindowsNodeProps, requires Active Directory parameter to read the Secret to join the domain
@@ -31,41 +34,39 @@ import * as skylight from '../index';
  */
 export interface IDomainWindowsNodeProps {
   /**
-	 * IAM Instance role permissions
-	 * @default - 'AmazonSSMManagedInstanceCore, AmazonSSMDirectoryServiceAccess'.
-	 */
+   * IAM Instance role permissions
+   * @default - 'AmazonSSMManagedInstanceCore, AmazonSSMDirectoryServiceAccess'.
+   */
   iamManagedPoliciesList?: iam.IManagedPolicy[];
   /**
-	 * The EC2 Instance type to use
-	 *
-	 * @default - 'm5.2xlarge'.
-	 */
+   * The EC2 Instance type to use
+   *
+   * @default - 'm5.2xlarge'.
+   */
   instanceType?: string;
   /**
-	 * Choose if to launch the instance in Private or in Public subnet
-	 * Private = Subnet that routes to the internet, but not vice versa.
-	 * Public = Subnet that routes to the internet and vice versa.
-	 * @default - Private.
-	 */
+   * Choose if to launch the instance in Private or in Public subnet
+   * Private = Subnet that routes to the internet, but not vice versa.
+   * Public = Subnet that routes to the internet and vice versa.
+   * @default - Private.
+   */
   usePrivateSubnet?: boolean;
   /**
-	 * The name of the AMI to search in SSM (ec2.LookupNodeImage) supports Regex
-	 *  @default - 'Windows_Server-2022-English-Full'
-	 */
+   * The name of the AMI to search in SSM (ec2.LookupNodeImage) supports Regex
+   *  @default - 'Windows_Server-2022-English-Full'
+   */
   amiName?: string;
   /**
-	 * Specific UserData to use
-	 *
-	 * The UserData may still be mutated after creation.
-	 *
-	 *  @default - 'No default'
-	 */
+   * Specific UserData to use
+   *
+   * The UserData may still be mutated after creation.
+   *
+   *  @default - 'undefined'
+   */
   userData?: string;
 
-  /**
-   * @default - 'true'
-   */
-  domainJoin?: boolean;
+  domainName?: string;
+  domainPassword?: aws_secretsmanager.ISecret;
 
   /**
    * @default - 'true'
@@ -73,18 +74,9 @@ export interface IDomainWindowsNodeProps {
   windowsMachine?: boolean;
 
   /**
-	 * The VPC to use
-	 */
+   * The VPC to use
+   */
   vpc: ec2.IVpc;
-
-  /**
-	 * The Managed AD Parameter store to use (only when domainJoin = True), should contain the secret name (Secrets manager) and the namespace to find the secret.
-	 * i.e: {namespace = "cdk-skylight", secretPointer = "mad-secret"}.
-	 * Please note: `secretPointer` is the name of the SSM parameter and not the secret name. The secret name should be stored in the provided parameter.
-	 *
-	 * @default - 'No default'.
-	 */
-  madSsmParameters?: skylight.authentication.IAwsManagedMicrosoftAdParameters;
 }
 
 /**
@@ -102,7 +94,6 @@ export class DomainWindowsNode extends Construct {
   readonly instance: ec2.Instance;
   readonly nodeRole: iam.Role;
   readonly vpc: ec2.IVpc;
-  readonly secretName: string;
 
   constructor(scope: Construct, id: string, props: IDomainWindowsNodeProps) {
     super(scope, id);
@@ -115,21 +106,9 @@ export class DomainWindowsNode extends Construct {
 
     props.usePrivateSubnet = props.usePrivateSubnet ?? false;
     props.userData = props.userData ?? '';
-    props.domainJoin = props.domainJoin ?? true;
     props.windowsMachine = props.windowsMachine ?? true;
 
     this.vpc = props.vpc;
-
-    if (props.domainJoin) {
-      props.madSsmParameters = props.madSsmParameters!;
-      // Look for the secret to join the Managed AD
-      this.secretName = aws_ssm.StringParameter.valueForStringParameter(
-        this,
-        `/${props.madSsmParameters.namespace}/${props.madSsmParameters.secretPointer}`,
-      );
-    } else {
-      this.secretName = '';
-    }
 
     const nodeImage = new ec2.LookupMachineImage({
       name: props.amiName ?? '*Windows_Server-2022-English-Full*',
@@ -148,7 +127,7 @@ export class DomainWindowsNode extends Construct {
     // Setting static logical ID for the Worker, to allow further customization
     const workerName = 'ec2InstanceWorker';
 
-    if (props.domainJoin) {
+    if (props.domainName && props.domainPassword) {
       // Create CloudFormation Config set to allow the Domain join report back to Cloudformation only after reboot.
       const config = ec2.CloudFormationInit.fromConfigSets({
         configSets: {
@@ -158,7 +137,7 @@ export class DomainWindowsNode extends Construct {
           domainJoin: new ec2.InitConfig([
             ec2.InitCommand.shellCommand(
               // Step1 : Domain Join using the Secret provided
-              `powershell.exe -command  "Invoke-Command -ScriptBlock {[string]$SecretAD  = '${this.secretName}' ;$SecretObj = Get-SECSecretValue -SecretId $SecretAD ;[PSCustomObject]$Secret = ($SecretObj.SecretString  | ConvertFrom-Json) ;$password   = $Secret.Password | ConvertTo-SecureString -asPlainText -Force ;$username   = $Secret.UserID + '@' + $Secret.Domain ;$credential = New-Object System.Management.Automation.PSCredential($username,$password) ;Add-Computer -DomainName $Secret.Domain -Credential $credential; Restart-Computer -Force}"`,
+              `powershell.exe -command  "Invoke-Command -ScriptBlock {[string]$SecretAD  = '${props.domainPassword}' ;$SecretObj = Get-SECSecretValue -SecretId $SecretAD ;[PSCustomObject]$Secret = ($SecretObj.SecretString  | ConvertFrom-Json) ;$password   = $Secret.Password | ConvertTo-SecureString -asPlainText -Force ;$username   = 'Admin' + '@' + ${props.domainName} ;$credential = New-Object System.Management.Automation.PSCredential($username,$password) ;Add-Computer -DomainName ${props.domainName} -Credential $credential; Restart-Computer -Force}"`,
               {
                 waitAfterCompletion: ec2.InitCommandWaitDuration.forever(),
               },
@@ -237,7 +216,6 @@ export class DomainWindowsNode extends Construct {
       });
     }
 
-
     // Append the user data
     if (props.userData != '') {
       this.instance.addUserData(props.userData);
@@ -249,9 +227,9 @@ export class DomainWindowsNode extends Construct {
   }
 
   /**
-	 * Running bash scripts on the Node with SSM Document.
-	 * i.e: runPsCommands(["echo 'hello world'", "echo 'Second command'"], "myScript")
-	 */
+   * Running bash scripts on the Node with SSM Document.
+   * i.e: runPsCommands(["echo 'hello world'", "echo 'Second command'"], "myScript")
+   */
   runShellCommands(ShellCommands: string[], id: string) {
     new ssm.CfnAssociation(this, id, {
       name: 'AWS-RunShellScript',
@@ -265,9 +243,9 @@ export class DomainWindowsNode extends Construct {
   }
 
   /**
-	 * Running PowerShell scripts on the Node with SSM Document.
-	 * i.e: runPsCommands(["Write-host 'Hello world'", "Write-host 'Second command'"], "myScript")
-	 */
+   * Running PowerShell scripts on the Node with SSM Document.
+   * i.e: runPsCommands(["Write-host 'Hello world'", "Write-host 'Second command'"], "myScript")
+   */
   runPsCommands(psCommands: string[], id: string) {
     new ssm.CfnAssociation(this, id, {
       name: 'AWS-RunPowerShellScript',
@@ -280,9 +258,9 @@ export class DomainWindowsNode extends Construct {
     });
   }
   /**
-	 * Open the security group of the Node Node to specific IP address on port 3389
-	 * i.e: openRDP("1.1.1.1/32")
-	 */
+   * Open the security group of the Node Node to specific IP address on port 3389
+   * i.e: openRDP("1.1.1.1/32")
+   */
   openRDP(ipaddress: string) {
     this.instance.connections.allowFrom(
       ec2.Peer.ipv4(ipaddress),
@@ -292,22 +270,27 @@ export class DomainWindowsNode extends Construct {
   }
 
   /**
-	 * Running PowerShell scripts on the Node with SSM Document with Domain Admin (Using the Secret used to join the machine to the domain)
-	 * i.e: runPsCommands(["Write-host 'Hello world'", "Write-host 'Second command'"], "myScript")
-	 * The provided psCommands will be stored in C:\Scripts and will be run with scheduled task with Domain Admin rights
-	 */
-  runPSwithDomainAdmin(psCommands: string[], id: string) {
+   * Running PowerShell scripts on the Node with SSM Document with Domain Admin (Using the Secret used to join the machine to the domain)
+   * i.e: runPsCommands(["Write-host 'Hello world'", "Write-host 'Second command'"], "myScript")
+   * The provided psCommands will be stored in C:\Scripts and will be run with scheduled task with Domain Admin rights
+   */
+  runPSwithDomainAdmin(
+    psCommands: string[],
+    id: string,
+    username: string,
+    password: ISecret,
+  ) {
     var commands = ['$oneTimePS = {'];
     psCommands.forEach((command: string) => {
       commands.push(command);
     });
     commands.push(
       '}',
-      `[string]$SecretAD  = '${this.secretName}'`,
+      `[string]$SecretAD  = '${password}'`,
       '$SecretObj = Get-SECSecretValue -SecretId $SecretAD',
       '[PSCustomObject]$Secret = ($SecretObj.SecretString  | ConvertFrom-Json)',
       '$password   = $Secret.Password | ConvertTo-SecureString -asPlainText -Force',
-      "$username   = $Secret.Domain + '\\' + $Secret.UserID",
+      `$username   = ${username}`,
       '$domain_admin_credential = New-Object System.Management.Automation.PSCredential($username,$password)',
       'New-Item -ItemType Directory -Path c:\\Scripts',
       '$tempScriptPath = "C:\\Scripts\\$PID.ps1"',
@@ -330,20 +313,24 @@ export class DomainWindowsNode extends Construct {
   }
 
   startInstance() {
-    new AwsCustomResource(this, 'start-instance-needed-'+ this.instance.instanceId, {
-      policy: AwsCustomResourcePolicy.fromSdkCalls({
-        resources: AwsCustomResourcePolicy.ANY_RESOURCE,
-      }),
-      onUpdate: {
-        service: 'EC2',
-        action: 'startInstances', // https://docs.aws.amazon.com/AWSJavaScriptSDK/latest/AWS/EC2.html#startInstances-property
-        parameters: {
-          InstanceIds: [this.instance.instanceId],
-        },
-        physicalResourceId: {
-          id: 'startInstance-' + this.instance.instanceId,
+    new AwsCustomResource(
+      this,
+      'start-instance-needed-' + this.instance.instanceId,
+      {
+        policy: AwsCustomResourcePolicy.fromSdkCalls({
+          resources: AwsCustomResourcePolicy.ANY_RESOURCE,
+        }),
+        onUpdate: {
+          service: 'EC2',
+          action: 'startInstances', // https://docs.aws.amazon.com/AWSJavaScriptSDK/latest/AWS/EC2.html#startInstances-property
+          parameters: {
+            InstanceIds: [this.instance.instanceId],
+          },
+          physicalResourceId: {
+            id: 'startInstance-' + this.instance.instanceId,
+          },
         },
       },
-    });
+    );
   }
 }

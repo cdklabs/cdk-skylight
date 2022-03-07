@@ -25,18 +25,20 @@ import * as skylight from '../../index';
 
 export interface IRuntimeNodes {
   /**
-	 * Method to add userData to the nodes
-	 */
+   * Method to add userData to the nodes
+   */
   addUserData(...commands: string[]): void;
   /**
-	 * Method to configure the Nodes to part of AD Domain
-	 * Secret: The secrets manager secret to use must be in format:
-	 * '{Domain: <domain.name>, UserID: 'Admin', Password: '<password>'}' (From cdk-skylight.AwsManagedMicrosoftAd Object)
-	 */
-  addAdDependency?(adParametersStore: skylight.authentication.IAwsManagedMicrosoftAdParameters): void;
+   * Method to configure the Nodes to part of AD Domain
+   * Secret: The secrets manager secret to use must be in format:
+   * '{Domain: <domain.name>, UserID: 'Admin', Password: '<password>'}' (From cdk-skylight.AwsManagedMicrosoftAd Object)
+   */
+  addAdDependency?(
+    adParametersStore: skylight.authentication.IAwsManagedMicrosoftAdParameters
+  ): void;
   /**
-	 * Method to configure persistent storage dependency to the hosts by using Global Mapping.
-	 */
+   * Method to configure persistent storage dependency to the hosts by using Global Mapping.
+   */
   addStorageDependency(
     adParametersStore: skylight.authentication.IAwsManagedMicrosoftAdParameters,
     fsxParametersStore: skylight.storage.IFSxWindowsParameters,
@@ -44,13 +46,13 @@ export interface IRuntimeNodes {
   ): void;
 
   /**
-	 * Method to add the nodes to specific Cluster
-	 */
+   * Method to add the nodes to specific Cluster
+   */
   addEKSDependency?(eksCluster: aws_eks.Cluster): void;
 
   /**
-	 * Method to add support for LocalCredFile <Experimental>
-	 */
+   * Method to add support for LocalCredFile <Experimental>
+   */
   addLocalCredFile?(
     adParametersStore: skylight.authentication.IAwsManagedMicrosoftAdParameters,
     ADGroupName: string,
@@ -61,15 +63,15 @@ export interface IRuntimeNodes {
 export interface IWindowsEKSNodesProps {
   vpc: aws_ec2.IVpc;
   /**
-	 * The SSM namespace to save parameters to
-	 * @default - 'cdk-skylight'.
-	 */
+   * The SSM namespace to save parameters to
+   * @default - 'cdk-skylight'.
+   */
   namespace?: string;
 
   /**
-	 * The instance to use
-	 * @default - 'm5.large'.
-	 */
+   * The instance to use
+   * @default - 'm5.large'.
+   */
   instanceType?: aws_ec2.InstanceType;
 }
 
@@ -77,7 +79,7 @@ export class WindowsEKSNodes extends Construct implements IRuntimeNodes {
   readonly asg: AutoScalingGroup;
   readonly windowsWorkersRole: aws_iam.Role;
   readonly asgResource: aws_autoscaling.CfnAutoScalingGroup;
-  readonly vpc : aws_ec2.IVpc;
+  readonly vpc: aws_ec2.IVpc;
   readonly nodesSg: aws_ec2.SecurityGroup;
 
   constructor(scope: Construct, id: string, props: IWindowsEKSNodesProps) {
@@ -85,7 +87,7 @@ export class WindowsEKSNodes extends Construct implements IRuntimeNodes {
 
     props.namespace = props.namespace ?? 'cdk-skylight';
     props.instanceType =
-			props.instanceType ?? new aws_ec2.InstanceType('m5.large');
+      props.instanceType ?? new aws_ec2.InstanceType('m5.large');
 
     this.vpc = props.vpc;
 
@@ -94,13 +96,9 @@ export class WindowsEKSNodes extends Construct implements IRuntimeNodes {
       windows: true,
     });
 
-    this.nodesSg = new aws_ec2.SecurityGroup(
-      this,
-      id + '-securityGroup',
-      {
-        vpc: this.vpc,
-      },
-    );
+    this.nodesSg = new aws_ec2.SecurityGroup(this, id + '-securityGroup', {
+      vpc: this.vpc,
+    });
     this.windowsWorkersRole = new aws_iam.Role(
       this,
       'windows-eks-workers-instance-role',
@@ -153,7 +151,7 @@ export class WindowsEKSNodes extends Construct implements IRuntimeNodes {
     this.asgResource = this.asg.node.children.find(
       (c) =>
         (c as CfnResource).cfnResourceType ===
-				'AWS::AutoScaling::AutoScalingGroup',
+        'AWS::AutoScaling::AutoScalingGroup',
     ) as aws_autoscaling.CfnAutoScalingGroup;
   }
 
@@ -161,7 +159,9 @@ export class WindowsEKSNodes extends Construct implements IRuntimeNodes {
     this.asg.addUserData(...commands);
   }
 
-  addAdDependency(adParametersStore: skylight.authentication.IAwsManagedMicrosoftAdParameters) {
+  addAdDependency(
+    adParametersStore: skylight.authentication.IAwsManagedMicrosoftAdParameters,
+  ) {
     const secretName = aws_ssm.StringParameter.valueForStringParameter(
       this,
       `/${adParametersStore.namespace}/${adParametersStore.secretPointer}`,
@@ -195,12 +195,15 @@ export class WindowsEKSNodes extends Construct implements IRuntimeNodes {
     });
   }
 
-  gMSAWebHookAutoInstall(eksCluster: aws_eks.Cluster, privateSignerName: string, awsaccountid: string, awsregion: string) {
-    const certmanager = new aws_iam.ManagedPolicy(this, 'webHookECR',
-      {
-        description: 'Allow WebHook',
-        statements:
-      [
+  gMSAWebHookAutoInstall(
+    eksCluster: aws_eks.Cluster,
+    privateSignerName: string,
+    awsaccountid: string,
+    awsregion: string,
+  ) {
+    const certmanager = new aws_iam.ManagedPolicy(this, 'webHookECR', {
+      description: 'Allow WebHook',
+      statements: [
         new aws_iam.PolicyStatement({
           effect: aws_iam.Effect.ALLOW,
           actions: [
@@ -219,72 +222,74 @@ export class WindowsEKSNodes extends Construct implements IRuntimeNodes {
           resources: ['arn:aws:ecr:*:*:repository/certmanager-ca-controller'],
         }),
       ],
-      });
-
-    const describeCluster = new aws_iam.ManagedPolicy(this, 'AllowWebHookEKSCluster',
-      {
-        description: 'Allow WebHook',
-        statements:
-      [
-        new aws_iam.PolicyStatement({
-          effect: aws_iam.Effect.ALLOW,
-          actions: [
-            'eks:DescribeCluster',
-          ],
-          resources: [`arn:aws:eks:*:${awsaccountid}:cluster/*`],
-        }),
-      ],
-      });
-
-    const allowAuthorizationToken = new aws_iam.ManagedPolicy(this, 'AllowWebHookECRCluster',
-      {
-        description: 'Allow WebHook',
-        statements:
-      [
-        new aws_iam.PolicyStatement({
-          effect: aws_iam.Effect.ALLOW,
-          actions: [
-            'ecr:GetAuthorizationToken',
-          ],
-          resources: ['*'],
-        }),
-      ],
-      });
-
-    const node = new skylight.compute.DomainWindowsNode(this, 'eksWorkerForGMSA', {
-      vpc: this.vpc,
-      domainJoin: false,
-      windowsMachine: false,
-      iamManagedPoliciesList:
-      [
-        certmanager,
-        describeCluster,
-        allowAuthorizationToken,
-        aws_iam.ManagedPolicy.fromAwsManagedPolicyName(
-          'AmazonSSMManagedInstanceCore',
-        ),
-      ],
-
-      amiName: '*amzn2-ami-hvm-x86_64*',
-      instanceType: 't3.small',
     });
+
+    const describeCluster = new aws_iam.ManagedPolicy(
+      this,
+      'AllowWebHookEKSCluster',
+      {
+        description: 'Allow WebHook',
+        statements: [
+          new aws_iam.PolicyStatement({
+            effect: aws_iam.Effect.ALLOW,
+            actions: ['eks:DescribeCluster'],
+            resources: [`arn:aws:eks:*:${awsaccountid}:cluster/*`],
+          }),
+        ],
+      },
+    );
+
+    const allowAuthorizationToken = new aws_iam.ManagedPolicy(
+      this,
+      'AllowWebHookECRCluster',
+      {
+        description: 'Allow WebHook',
+        statements: [
+          new aws_iam.PolicyStatement({
+            effect: aws_iam.Effect.ALLOW,
+            actions: ['ecr:GetAuthorizationToken'],
+            resources: ['*'],
+          }),
+        ],
+      },
+    );
+
+    const node = new skylight.compute.DomainWindowsNode(
+      this,
+      'eksWorkerForGMSA',
+      {
+        vpc: this.vpc,
+        windowsMachine: false,
+        iamManagedPoliciesList: [
+          certmanager,
+          describeCluster,
+          allowAuthorizationToken,
+          aws_iam.ManagedPolicy.fromAwsManagedPolicyName(
+            'AmazonSSMManagedInstanceCore',
+          ),
+        ],
+        amiName: '*amzn2-ami-hvm-x86_64*',
+        instanceType: 't3.small',
+      },
+    );
 
     this.asg.connections.allowFrom(node.instance, aws_ec2.Port.tcp(443));
 
     eksCluster.awsAuth.addRoleMapping(node.nodeRole, {
-      groups: [
-        'system:masters',
-      ],
+      groups: ['system:masters'],
       username: 'admin',
     });
 
-    node.runShellCommands([
-      'sudo -i',
-      'yum install -y git',
-      'git clone https://github.com/aws-samples/amazon-eks-gmsa-admission-webhook-autoinstall',
-      'cd amazon-eks-gmsa-admission-webhook-autoinstall/',
-      `bash installation.sh ${awsaccountid} ${awsregion} ${eksCluster.clusterName} ${privateSignerName}/my-signer AL2`,
-    ], 'webHookInstallation');
+    node.runShellCommands(
+      [
+        'sudo -i',
+        'yum install -y git',
+        'git clone https://github.com/aws-samples/amazon-eks-gmsa-admission-webhook-autoinstall',
+        'cd amazon-eks-gmsa-admission-webhook-autoinstall/',
+        `bash installation.sh ${awsaccountid} ${awsregion} ${eksCluster.clusterName} ${privateSignerName}/my-signer AL2`,
+      ],
+      'webHookInstallation',
+    );
   }
 
   addStorageDependency(

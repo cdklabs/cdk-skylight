@@ -14,7 +14,7 @@ test('storageTest', () => {
     adParametersStore: {},
     vpc: vpc,
   });
-  storage.createFolder('test');
+  // storage.createFolder('test');
   storage.smbMountAddress();
   expect(storage).toHaveProperty(
     'fsxObject.cfnResourceType',
