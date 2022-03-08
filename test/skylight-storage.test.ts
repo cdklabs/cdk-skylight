@@ -11,13 +11,12 @@ const vpc = new aws_ec2.Vpc(stack, 'vpc', {});
 
 test('storageTest', () => {
   const storage = new skylight.storage.FSxWindows(stack, 'PersistentStorage', {
-    adParametersStore: {},
+    directoryId: 'd-1234567',
     vpc: vpc,
   });
-  // storage.createFolder('test');
   storage.smbMountAddress();
   expect(storage).toHaveProperty(
     'fsxObject.cfnResourceType',
-    'AWS::FSx::FileSystem'
+    'AWS::FSx::FileSystem',
   );
 });

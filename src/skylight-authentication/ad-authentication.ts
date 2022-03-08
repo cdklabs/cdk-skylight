@@ -237,8 +237,6 @@ export class AwsManagedMicrosoftAd extends Construct {
       this.worker.runPSwithDomainAdmin(
         ['Add-WindowsFeature RSAT-AD-PowerShell'],
         'ad-powershell',
-        `admin@${this.props.domainName}`,
-        this.secret,
       );
     } else {
       this.worker = undefined;
@@ -252,7 +250,7 @@ export class AwsManagedMicrosoftAd extends Construct {
   ): skylight.compute.DomainWindowsNode {
     return new skylight.compute.DomainWindowsNode(this, 'madWorker', {
       domainName: domainName,
-      domainPassword: domainPassword,
+      passwordObject: domainPassword,
       vpc: this.props.vpc,
       instanceType: 't3.small',
     });
@@ -282,8 +280,6 @@ export class AwsManagedMicrosoftAd extends Construct {
           'Stop-Computer -ComputerName localhost',
         ],
         'createAdGroup',
-        `admin@${this.props.domainName}`,
-        this.secret,
       );
     } else {
       console.log("Can't create AD group when no Worker is defined");
@@ -302,8 +298,6 @@ export class AwsManagedMicrosoftAd extends Construct {
           `New-ADServiceAccount -Name "${adServiceAccountName}" -DnsHostName "${adServiceAccountName}.${this.props.domainName}" -ServicePrincipalNames "${servicePrincipalNames}" -PrincipalsAllowedToRetrieveManagedPassword "${principalsAllowedToRetrieveManagedPassword}"`,
         ],
         'createServiceAccount',
-        'admin',
-        this.secret,
       );
     } else {
       console.log("Can't createServiceAccount when no Worker is defined");

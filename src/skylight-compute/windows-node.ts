@@ -66,7 +66,7 @@ export interface IDomainWindowsNodeProps {
   userData?: string;
 
   domainName?: string;
-  domainPassword?: aws_secretsmanager.ISecret;
+  passwordObject?: aws_secretsmanager.ISecret;
 
   /**
    * @default - 'true'
@@ -94,6 +94,7 @@ export class DomainWindowsNode extends Construct {
   readonly instance: ec2.Instance;
   readonly nodeRole: iam.Role;
   readonly vpc: ec2.IVpc;
+  readonly passwordObject?: ISecret;
 
   constructor(scope: Construct, id: string, props: IDomainWindowsNodeProps) {
     super(scope, id);
@@ -107,6 +108,7 @@ export class DomainWindowsNode extends Construct {
     props.usePrivateSubnet = props.usePrivateSubnet ?? false;
     props.userData = props.userData ?? '';
     props.windowsMachine = props.windowsMachine ?? true;
+    this.passwordObject = props.passwordObject ?? undefined;
 
     this.vpc = props.vpc;
 
@@ -127,7 +129,9 @@ export class DomainWindowsNode extends Construct {
     // Setting static logical ID for the Worker, to allow further customization
     const workerName = 'ec2InstanceWorker';
 
-    if (props.domainName && props.domainPassword) {
+    if (props.domainName && this.passwordObject) {
+      this.passwordObject.grantRead(this.nodeRole);
+
       // Create CloudFormation Config set to allow the Domain join report back to Cloudformation only after reboot.
       const config = ec2.CloudFormationInit.fromConfigSets({
         configSets: {
@@ -137,7 +141,7 @@ export class DomainWindowsNode extends Construct {
           domainJoin: new ec2.InitConfig([
             ec2.InitCommand.shellCommand(
               // Step1 : Domain Join using the Secret provided
-              `powershell.exe -command  "Invoke-Command -ScriptBlock {[string]$SecretAD  = '${props.domainPassword}' ;$SecretObj = Get-SECSecretValue -SecretId $SecretAD ;[PSCustomObject]$Secret = ($SecretObj.SecretString  | ConvertFrom-Json) ;$password   = $Secret.Password | ConvertTo-SecureString -asPlainText -Force ;$username   = 'Admin' + '@' + ${props.domainName} ;$credential = New-Object System.Management.Automation.PSCredential($username,$password) ;Add-Computer -DomainName ${props.domainName} -Credential $credential; Restart-Computer -Force}"`,
+              `powershell.exe -command  "Invoke-Command -ScriptBlock {[string]$SecretAD  = '${this.passwordObject}' ;$SecretObj = Get-SECSecretValue -SecretId $SecretAD ;[PSCustomObject]$Secret = ($SecretObj.SecretString  | ConvertFrom-Json) ;$password   = $Secret.Password | ConvertTo-SecureString -asPlainText -Force ;$username   = 'Admin' + '@' + ${props.domainName} ;$credential = New-Object System.Management.Automation.PSCredential($username,$password) ;Add-Computer -DomainName ${props.domainName} -Credential $credential; Restart-Computer -Force}"`,
               {
                 waitAfterCompletion: ec2.InitCommandWaitDuration.forever(),
               },
@@ -274,23 +278,18 @@ export class DomainWindowsNode extends Construct {
    * i.e: runPsCommands(["Write-host 'Hello world'", "Write-host 'Second command'"], "myScript")
    * The provided psCommands will be stored in C:\Scripts and will be run with scheduled task with Domain Admin rights
    */
-  runPSwithDomainAdmin(
-    psCommands: string[],
-    id: string,
-    username: string,
-    password: ISecret,
-  ) {
+  runPSwithDomainAdmin(psCommands: string[], id: string) {
     var commands = ['$oneTimePS = {'];
     psCommands.forEach((command: string) => {
       commands.push(command);
     });
     commands.push(
       '}',
-      `[string]$SecretAD  = '${password}'`,
+      `[string]$SecretAD  = '${this.passwordObject}'`,
       '$SecretObj = Get-SECSecretValue -SecretId $SecretAD',
       '[PSCustomObject]$Secret = ($SecretObj.SecretString  | ConvertFrom-Json)',
       '$password   = $Secret.Password | ConvertTo-SecureString -asPlainText -Force',
-      `$username   = ${username}`,
+      '$username   = \'Admin\'',
       '$domain_admin_credential = New-Object System.Management.Automation.PSCredential($username,$password)',
       'New-Item -ItemType Directory -Path c:\\Scripts',
       '$tempScriptPath = "C:\\Scripts\\$PID.ps1"',
