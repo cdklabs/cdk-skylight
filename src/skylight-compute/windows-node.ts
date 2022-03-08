@@ -141,7 +141,7 @@ export class DomainWindowsNode extends Construct {
           domainJoin: new ec2.InitConfig([
             ec2.InitCommand.shellCommand(
               // Step1 : Domain Join using the Secret provided
-              `powershell.exe -command  "Invoke-Command -ScriptBlock {[string]$SecretAD  = '${this.passwordObject}' ;$SecretObj = Get-SECSecretValue -SecretId $SecretAD ;[PSCustomObject]$Secret = ($SecretObj.SecretString  | ConvertFrom-Json) ;$password   = $Secret.Password | ConvertTo-SecureString -asPlainText -Force ;$username   = 'Admin' + '@' + ${props.domainName} ;$credential = New-Object System.Management.Automation.PSCredential($username,$password) ;Add-Computer -DomainName ${props.domainName} -Credential $credential; Restart-Computer -Force}"`,
+              `powershell.exe -command  "Invoke-Command -ScriptBlock {[string]$SecretAD  = '${this.passwordObject.secretName}' ;$SecretObj = Get-SECSecretValue -SecretId $SecretAD ;[PSCustomObject]$Secret = ($SecretObj.SecretString  | ConvertFrom-Json) ;$password   = $Secret.Password | ConvertTo-SecureString -asPlainText -Force ;$username   = 'Admin@' + '${props.domainName}' ;$credential = New-Object System.Management.Automation.PSCredential($username,$password) ;Add-Computer -DomainName ${props.domainName} -Credential $credential; Restart-Computer -Force}"`,
               {
                 waitAfterCompletion: ec2.InitCommandWaitDuration.forever(),
               },
@@ -285,11 +285,11 @@ export class DomainWindowsNode extends Construct {
     });
     commands.push(
       '}',
-      `[string]$SecretAD  = '${this.passwordObject}'`,
+      `[string]$SecretAD  = '${this.passwordObject!.secretName}'`,
       '$SecretObj = Get-SECSecretValue -SecretId $SecretAD',
       '[PSCustomObject]$Secret = ($SecretObj.SecretString  | ConvertFrom-Json)',
       '$password   = $Secret.Password | ConvertTo-SecureString -asPlainText -Force',
-      '$username   = \'Admin\'',
+      "$username   = 'Admin'",
       '$domain_admin_credential = New-Object System.Management.Automation.PSCredential($username,$password)',
       'New-Item -ItemType Directory -Path c:\\Scripts',
       '$tempScriptPath = "C:\\Scripts\\$PID.ps1"',
