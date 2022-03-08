@@ -117,10 +117,10 @@ export interface IAwsManagedMicrosoftAdParameters {
  *
  */
 export class AwsManagedMicrosoftAd extends Construct {
-  readonly adObject: CfnMicrosoftAD;
+  readonly microsoftAD: CfnMicrosoftAD;
   readonly adParameters: IAwsManagedMicrosoftAdParameters;
   readonly props: IAwsManagedMicrosoftAdProps;
-  readonly worker?: skylight.compute.DomainWindowsNode;
+  readonly domainWindowsNode?: skylight.compute.DomainWindowsNode;
   readonly secret: ISecret;
   constructor(
     scope: Construct,
@@ -176,15 +176,15 @@ export class AwsManagedMicrosoftAd extends Construct {
         subnetType: ec2.SubnetType.PRIVATE_ISOLATED,
       });
 
-    new CfnOutput(this, id + '-SSM-GetSecret', {
+    new CfnOutput(this, 'secret-value-hint', {
       value: `aws secretsmanager get-secret-value --secret-id ${
         this.secret.secretArn
       } --query SecretString --output text --region ${'region'}`, //need to fix the region
     });
 
-    this.adObject = new mad.CfnMicrosoftAD(
+    this.microsoftAD = new mad.CfnMicrosoftAD(
       this,
-      id + '-managedDirectoryObject',
+      'AWS-Managed-Microsoft-AD',
       {
         password: this.secret.secretValueFromJson('Password').toString(),
         edition: props.edition,
@@ -198,10 +198,10 @@ export class AwsManagedMicrosoftAd extends Construct {
 
     new aws_ssm.StringParameter(this, 'mad-directoryID-pointer', {
       parameterName: `/${this.adParameters.namespace}/${this.adParameters.directoryIDPointer}`,
-      stringValue: this.adObject.ref,
+      stringValue: this.microsoftAD.ref,
     });
 
-    const sg = new ec2.SecurityGroup(this, id + '-r53-outbound-Resolver-SG', {
+    const sg = new ec2.SecurityGroup(this, 'r53-outbound-resolver-SG', {
       vpc: props.vpc,
     });
     sg.addIngressRule(ec2.Peer.ipv4(props.vpc.vpcCidrBlock), ec2.Port.udp(53));
@@ -209,7 +209,7 @@ export class AwsManagedMicrosoftAd extends Construct {
 
     const outBoundResolver = new r53resolver.CfnResolverEndpoint(
       this,
-      id + '-r53-endpoint',
+      'R53-Resolver-Endpoint',
       {
         direction: 'OUTBOUND',
         ipAddresses: subnets.subnetIds.map((s) => {
@@ -221,21 +221,21 @@ export class AwsManagedMicrosoftAd extends Construct {
 
     const resolverRules = new r53resolver.CfnResolverRule(
       this,
-      id + '-r53-resolver-rules',
+      'R53-Resolve-Rule',
       {
         domainName: this.props.domainName,
         resolverEndpointId: outBoundResolver.ref,
         ruleType: 'FORWARD',
         targetIps: [
-          { ip: Fn.select(0, this.adObject.attrDnsIpAddresses) },
-          { ip: Fn.select(1, this.adObject.attrDnsIpAddresses) },
+          { ip: Fn.select(0, this.microsoftAD.attrDnsIpAddresses) },
+          { ip: Fn.select(1, this.microsoftAD.attrDnsIpAddresses) },
         ],
       },
     );
 
     new r53resolver.CfnResolverRuleAssociation(
       this,
-      id + '-r53-resolver-association',
+      'R53-Resolver-Association',
       {
         resolverRuleId: resolverRules.attrResolverRuleId,
         vpcId: props.vpc.vpcId,
@@ -243,17 +243,20 @@ export class AwsManagedMicrosoftAd extends Construct {
     );
 
     if (this.props.createWorker) {
-      this.worker = this.createWorker(this.props.domainName, this.secret);
-      this.worker.runPSwithDomainAdmin(
+      this.domainWindowsNode = this.createWorker(
+        this.props.domainName,
+        this.secret,
+      );
+      this.domainWindowsNode.runPSwithDomainAdmin(
         [
           'Add-WindowsFeature RSAT-AD-PowerShell',
           'Stop-Computer -ComputerName localhost',
         ],
         'ad-powershell',
       );
-      this.worker.instance.node.addDependency(this.adObject);
+      this.domainWindowsNode.instance.node.addDependency(this.microsoftAD);
     } else {
-      this.worker = undefined;
+      this.domainWindowsNode = undefined;
     }
   }
 
@@ -272,9 +275,9 @@ export class AwsManagedMicrosoftAd extends Construct {
 
   // The function creates a Lambda to Start the Windows Worker, then creates SSM Document and Desired state in State Manager to schedule this document on the Worker.
   createADGroup(groupName: string, groupDescription: string) {
-    if (this.worker) {
-      this.worker.startInstance();
-      this.worker.runPSwithDomainAdmin(
+    if (this.domainWindowsNode) {
+      this.domainWindowsNode.startInstance();
+      this.domainWindowsNode.runPSwithDomainAdmin(
         [
           `New-ADGroup -Name "${groupDescription}" -SamAccountName "${groupName}" -GroupScope DomainLocal`,
           'Stop-Computer -ComputerName localhost',
@@ -292,8 +295,8 @@ export class AwsManagedMicrosoftAd extends Construct {
     servicePrincipalNames: string,
     principalsAllowedToRetrieveManagedPassword: string,
   ) {
-    if (this.worker) {
-      this.worker.runPSwithDomainAdmin(
+    if (this.domainWindowsNode) {
+      this.domainWindowsNode.runPSwithDomainAdmin(
         [
           `New-ADServiceAccount -Name "${adServiceAccountName}" -DnsHostName "${adServiceAccountName}.${this.props.domainName}" -ServicePrincipalNames "${servicePrincipalNames}" -PrincipalsAllowedToRetrieveManagedPassword "${principalsAllowedToRetrieveManagedPassword}"`,
         ],

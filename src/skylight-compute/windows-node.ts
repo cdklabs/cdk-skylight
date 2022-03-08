@@ -117,17 +117,17 @@ export class DomainWindowsNode extends Construct {
       windows: props.windowsMachine,
     });
 
-    this.nodeRole = new iam.Role(this, id + '-instance-role', {
+    this.nodeRole = new iam.Role(this, 'iam-Role', {
       assumedBy: new iam.ServicePrincipal('ec2.amazonaws.com'),
       managedPolicies: props.iamManagedPoliciesList,
     });
 
-    const securityGroup = new ec2.SecurityGroup(this, id + '-securityGroup', {
+    const securityGroup = new ec2.SecurityGroup(this, 'SecurityGroup', {
       vpc: this.vpc,
     });
 
     // Setting static logical ID for the Worker, to allow further customization
-    const workerName = 'ec2InstanceWorker';
+    const workerName = 'EC2DomainWindowsNode';
 
     if (props.domainName && this.passwordObject) {
       this.passwordObject.grantRead(this.nodeRole);
@@ -168,7 +168,7 @@ export class DomainWindowsNode extends Construct {
         embedFingerprint: false,
       };
 
-      this.instance = new ec2.Instance(this, id + '-ec2instance', {
+      this.instance = new ec2.Instance(this, 'Domain-Instance', {
         instanceType: new ec2.InstanceType(props.instanceType ?? 'm5.large'),
         machineImage: nodeImage,
         vpc: this.vpc,
@@ -205,7 +205,7 @@ export class DomainWindowsNode extends Construct {
         },
       };
     } else {
-      this.instance = new ec2.Instance(this, id + '-ec2instance', {
+      this.instance = new ec2.Instance(this, 'NonDomain-Instance', {
         instanceType: new ec2.InstanceType(props.instanceType ?? 'm5.large'),
         machineImage: nodeImage,
         vpc: this.vpc,
@@ -225,7 +225,7 @@ export class DomainWindowsNode extends Construct {
       this.instance.addUserData(props.userData);
     }
 
-    new CfnOutput(this, id + '-stack-output', {
+    new CfnOutput(this, 'InstanceId', {
       value: `InstanceId: ${this.instance.instanceId}; dnsName: ${this.instance.instancePublicDnsName}`,
     });
   }

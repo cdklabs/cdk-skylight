@@ -57,7 +57,7 @@ test('authentication', () => {
     'custom-namespace/authentication/mad',
   );
   expect(mad).toHaveProperty(
-    'adObject.cfnResourceType',
+    'microsoftAD.cfnResourceType',
     'AWS::DirectoryService::MicrosoftAD',
   );
 });
