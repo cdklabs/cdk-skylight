@@ -18,6 +18,6 @@ test('storageTest', () => {
   storage.smbMountAddress();
   expect(storage).toHaveProperty(
     'fsxObject.cfnResourceType',
-    'AWS::FSx::FileSystem',
+    'AWS::FSx::FileSystem'
   );
 });

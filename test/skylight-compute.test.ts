@@ -15,7 +15,7 @@ const cluster = new skylight.compute.WindowsEKSCluster(
   {
     vpc: vpc,
     eksSsmParameters: {},
-  },
+  }
 );
 
 test('Skylight-WindowsNode', () => {
@@ -25,14 +25,14 @@ test('Skylight-WindowsNode', () => {
     {
       vpc: vpc,
       userData: 'hello',
-    },
+    }
   );
   windowsNodeObject.runPsCommands(['echo hello world'], 'hello');
 
   windowsNodeObject.openRDP('1.1.1.1/32');
   expect(windowsNodeObject).toHaveProperty(
     'instance.instance.cfnResourceType',
-    'AWS::EC2::Instance',
+    'AWS::EC2::Instance'
   );
 });
 
@@ -43,7 +43,7 @@ test('Skylight-WindowsEKSNodes', () => {
     'WindowsEKSNodesTest',
     {
       vpc: vpc,
-    },
+    }
   );
 
   nodes.addAdDependency({});
@@ -52,7 +52,7 @@ test('Skylight-WindowsEKSNodes', () => {
   nodes.addLocalCredFile({}, 'group', 'account');
   expect(nodes).toHaveProperty(
     'asgResource.cfnResourceType',
-    'AWS::AutoScaling::AutoScalingGroup',
+    'AWS::AutoScaling::AutoScalingGroup'
   );
 });
 
