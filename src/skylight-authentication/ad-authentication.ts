@@ -129,7 +129,7 @@ export class AwsManagedMicrosoftAd extends Construct {
   constructor(
     scope: Construct,
     id: string,
-    props: IAwsManagedMicrosoftAdProps
+    props: IAwsManagedMicrosoftAdProps,
   ) {
     super(scope, id);
     this.props = props;
@@ -197,7 +197,7 @@ export class AwsManagedMicrosoftAd extends Construct {
           subnetIds: [subnets.subnetIds[0], subnets.subnetIds[1]],
           vpcId: props.vpc.vpcId,
         },
-      }
+      },
     );
 
     new aws_ssm.StringParameter(this, 'mad-directoryID-pointer', {
@@ -220,7 +220,7 @@ export class AwsManagedMicrosoftAd extends Construct {
           return { subnetId: s };
         }),
         securityGroupIds: [sg.securityGroupId],
-      }
+      },
     );
 
     const resolverRules = new r53resolver.CfnResolverRule(
@@ -234,7 +234,7 @@ export class AwsManagedMicrosoftAd extends Construct {
           { ip: Fn.select(0, this.adObject.attrDnsIpAddresses) },
           { ip: Fn.select(1, this.adObject.attrDnsIpAddresses) },
         ],
-      }
+      },
     );
 
     new r53resolver.CfnResolverRuleAssociation(
@@ -243,14 +243,14 @@ export class AwsManagedMicrosoftAd extends Construct {
       {
         resolverRuleId: resolverRules.attrResolverRuleId,
         vpcId: props.vpc.vpcId,
-      }
+      },
     );
 
     if (this.props.createWorker) {
       this.worker = this.createWorker(this.props.domainName, this.secret);
       this.worker.runPSwithDomainAdmin(
         ['Add-WindowsFeature RSAT-AD-PowerShell'],
-        'ad-powershell'
+        'ad-powershell',
       );
       this.worker.node.addDependency(this.node);
     } else {
@@ -261,7 +261,7 @@ export class AwsManagedMicrosoftAd extends Construct {
   // Creates DomainWindowsNode that will be used to run admin-tasks to this directory
   createWorker(
     domainName: string,
-    domainPassword: ISecret
+    domainPassword: ISecret,
   ): skylight.compute.DomainWindowsNode {
     return new skylight.compute.DomainWindowsNode(this, 'madWorker', {
       domainName: domainName,
@@ -294,7 +294,7 @@ export class AwsManagedMicrosoftAd extends Construct {
           `New-ADGroup -Name "${groupDescription}" -SamAccountName "${groupName}" -GroupScope DomainLocal`,
           'Stop-Computer -ComputerName localhost',
         ],
-        'createAdGroup'
+        'createAdGroup',
       );
     } else {
       console.log("Can't create AD group when no Worker is defined");
@@ -305,14 +305,14 @@ export class AwsManagedMicrosoftAd extends Construct {
   createServiceAccount(
     adServiceAccountName: string,
     servicePrincipalNames: string,
-    principalsAllowedToRetrieveManagedPassword: string
+    principalsAllowedToRetrieveManagedPassword: string,
   ) {
     if (this.worker) {
       this.worker.runPSwithDomainAdmin(
         [
           `New-ADServiceAccount -Name "${adServiceAccountName}" -DnsHostName "${adServiceAccountName}.${this.props.domainName}" -ServicePrincipalNames "${servicePrincipalNames}" -PrincipalsAllowedToRetrieveManagedPassword "${principalsAllowedToRetrieveManagedPassword}"`,
         ],
-        'createServiceAccount'
+        'createServiceAccount',
       );
     } else {
       console.log("Can't createServiceAccount when no Worker is defined");
