@@ -16,7 +16,8 @@ test('authentication', () => {
     'AwsManagedMicrosoftAd',
     {
       vpc: vpc,
-    },
+      createWorker: true,
+    }
   );
   const mad2 = new skylight.authentication.AwsManagedMicrosoftAd(
     stack,
@@ -28,9 +29,8 @@ test('authentication', () => {
       domainName: 'test-domain',
       secretName: 'custom-secret-name',
       createWorker: false,
-    },
+    }
   );
-  mad2.createServiceAccount('test1', 'test2', 'Test3');
   const mad3 = new skylight.authentication.AwsManagedMicrosoftAd(
     stack,
     'AwsManagedMicrosoftAd3',
@@ -44,21 +44,20 @@ test('authentication', () => {
         directoryIDPointer: 'directory-pointer',
       },
       createWorker: false,
-    },
+    }
   );
-  mad3.createADGroup('test', 'test2');
   mad.createADGroup('Test', 'test2');
   mad.createServiceAccount('test', 'Test2', 'test3');
   expect(mad2).toHaveProperty(
     'adParameters.namespace',
-    'cdk-skylight/authentication/mad',
+    'cdk-skylight/authentication/mad'
   );
   expect(mad3).toHaveProperty(
     'adParameters.namespace',
-    'custom-namespace/authentication/mad',
+    'custom-namespace/authentication/mad'
   );
   expect(mad).toHaveProperty(
     'adObject.cfnResourceType',
-    'AWS::DirectoryService::MicrosoftAD',
+    'AWS::DirectoryService::MicrosoftAD'
   );
 });

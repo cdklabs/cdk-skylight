@@ -252,7 +252,7 @@ export class AwsManagedMicrosoftAd extends Construct {
         ['Add-WindowsFeature RSAT-AD-PowerShell'],
         'ad-powershell'
       );
-      this.worker.node.addDependency(this.adObject);
+      this.worker.node.addDependency(this.node);
     } else {
       this.worker = undefined;
     }
