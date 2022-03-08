@@ -62,7 +62,10 @@ export interface IAwsManagedMicrosoftAdProps {
    */
   vpc: ec2.IVpc;
 
-  ssmParameters?: IAwsManagedMicrosoftAdParameters;
+  /**
+   * The configuration store to save the directory parameters (After deployed)
+   */
+  configurationStore?: IAwsManagedMicrosoftAdParameters;
 
   /**
    * Create Domain joined machine to be used to run Powershell commands to that directory. (i.e Create Ad Group)
@@ -71,11 +74,20 @@ export interface IAwsManagedMicrosoftAdProps {
   createWorker?: boolean;
 }
 
+export enum AwsManagedMicrosoftConfigurationStoreType {
+  SSM = 'AWS Systems Manager Parameter Store',
+}
+
 /**
  * The properties of an DomainWindowsNodeProps, requires Active Directory parameter to read the Secret to join the domain
  * Default setting: Domain joined, m5.2xlarge, latest windows, Managed by SSM.
  */
 export interface IAwsManagedMicrosoftAdParameters {
+  /**
+   * The name of the Configuration Store Type to use
+   * @default - 'AWS Systems Manager Parameter Store'.
+   */
+  configurationStoreType?: AwsManagedMicrosoftConfigurationStoreType;
   /**
    * The name of the SSM Object that contains the secret name in Secrets Manager
    * @default - 'domain-secret'.
@@ -110,7 +122,7 @@ export interface IAwsManagedMicrosoftAdParameters {
  */
 export class AwsManagedMicrosoftAd extends Construct {
   readonly adObject: CfnMicrosoftAD;
-  readonly ssmParameters: IAwsManagedMicrosoftAdParameters;
+  readonly adParameters: IAwsManagedMicrosoftAdParameters;
   readonly props: IAwsManagedMicrosoftAdProps;
   readonly worker?: skylight.compute.DomainWindowsNode;
   readonly secret: ISecret;
@@ -126,17 +138,19 @@ export class AwsManagedMicrosoftAd extends Construct {
     this.props.secretName = props.secretName ?? `${props.domainName}-secret`;
     this.props.createWorker = props.createWorker ?? true;
 
-    this.ssmParameters = props.ssmParameters ?? {};
-    this.ssmParameters.secretPointer =
-      this.ssmParameters.secretPointer ?? 'domain-secret';
+    this.adParameters = props.configurationStore ?? {
+      configurationStoreType: AwsManagedMicrosoftConfigurationStoreType.SSM,
+    };
+    this.adParameters.secretPointer =
+      this.adParameters.secretPointer ?? 'domain-secret';
 
-    this.ssmParameters.directoryIDPointer =
-      this.ssmParameters.directoryIDPointer ?? 'directoryID';
+    this.adParameters.directoryIDPointer =
+      this.adParameters.directoryIDPointer ?? 'directoryID';
 
-    if (this.ssmParameters.namespace) {
-      this.ssmParameters.namespace = `${this.ssmParameters.namespace}/authentication/mad`;
+    if (this.adParameters.namespace) {
+      this.adParameters.namespace = `${this.adParameters.namespace}/authentication/mad`;
     } else {
-      this.ssmParameters.namespace = 'cdk-skylight/authentication/mad';
+      this.adParameters.namespace = 'cdk-skylight/authentication/mad';
     }
 
     this.secret =
@@ -154,7 +168,7 @@ export class AwsManagedMicrosoftAd extends Construct {
       });
 
     new aws_ssm.StringParameter(this, 'mad-secretName-pointer', {
-      parameterName: `/${this.ssmParameters.namespace}/${this.ssmParameters.secretPointer}`,
+      parameterName: `/${this.adParameters.namespace}/${this.adParameters.secretPointer}`,
       stringValue: this.props.secretName,
     });
 
@@ -187,7 +201,7 @@ export class AwsManagedMicrosoftAd extends Construct {
     );
 
     new aws_ssm.StringParameter(this, 'mad-directoryID-pointer', {
-      parameterName: `/${this.ssmParameters.namespace}/${this.ssmParameters.directoryIDPointer}`,
+      parameterName: `/${this.adParameters.namespace}/${this.adParameters.directoryIDPointer}`,
       stringValue: this.adObject.ref,
     });
 

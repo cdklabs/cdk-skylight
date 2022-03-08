@@ -38,7 +38,7 @@ test('authentication', () => {
       vpc: vpc,
       edition: 'enterprise',
       secretName: 'custom-secret-name',
-      ssmParameters: {
+      configurationStore: {
         namespace: 'custom-namespace',
         secretPointer: 'secret-pointer',
         directoryIDPointer: 'directory-pointer',
@@ -50,11 +50,11 @@ test('authentication', () => {
   mad.createADGroup('Test', 'test2');
   mad.createServiceAccount('test', 'Test2', 'test3');
   expect(mad2).toHaveProperty(
-    'ssmParameters.namespace',
+    'adParameters.namespace',
     'cdk-skylight/authentication/mad',
   );
   expect(mad3).toHaveProperty(
-    'ssmParameters.namespace',
+    'adParameters.namespace',
     'custom-namespace/authentication/mad',
   );
   expect(mad).toHaveProperty(
