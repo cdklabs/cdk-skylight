@@ -135,7 +135,7 @@ export class FSxWindows extends Construct {
     this.fsxObject = new aws_fsx.CfnFileSystem(
       this,
       (id = id + '-FSxObject'),
-      fsx_props,
+      fsx_props
     );
 
     new aws_ssm.StringParameter(this, 'ssm-dns-fsxEndpoint', {
@@ -146,25 +146,25 @@ export class FSxWindows extends Construct {
   smbMountAddress(): string {
     const fsxName = aws_ssm.StringParameter.valueForStringParameter(
       this,
-      `/${this.ssmParameters.namespace}/${this.ssmParameters.dnsEndpoint}`,
+      `/${this.ssmParameters.namespace}/${this.ssmParameters.dnsEndpoint}`
     );
 
     return fsxName;
   }
 
   createWorker(domainName: string, domainPassword: ISecret): DomainWindowsNode {
-    return new DomainWindowsNode(this, 'worker', {
+    return new DomainWindowsNode(this, 'DomainWindowsNode', {
       vpc: this.props.vpc,
       instanceType: 't3.small',
       iamManagedPoliciesList: [
         aws_iam.ManagedPolicy.fromAwsManagedPolicyName(
-          'AmazonSSMManagedInstanceCore',
+          'AmazonSSMManagedInstanceCore'
         ),
         aws_iam.ManagedPolicy.fromAwsManagedPolicyName(
-          'SecretsManagerReadWrite',
+          'SecretsManagerReadWrite'
         ),
         aws_iam.ManagedPolicy.fromAwsManagedPolicyName(
-          'AmazonFSxReadOnlyAccess',
+          'AmazonFSxReadOnlyAccess'
         ),
       ],
       domainName: domainName,
@@ -175,7 +175,7 @@ export class FSxWindows extends Construct {
   createFolder(
     worker: DomainWindowsNode,
     folderName: string,
-    secretName: ISecret,
+    secretName: ISecret
   ) {
     worker.startInstance();
     worker.runPSwithDomainAdmin(
@@ -209,7 +209,7 @@ export class FSxWindows extends Construct {
         'Disconnect-PSSession -Session $Session',
         'Stop-Computer -ComputerName localhost',
       ],
-      'createFolder',
+      'createFolder'
     );
   }
 }
