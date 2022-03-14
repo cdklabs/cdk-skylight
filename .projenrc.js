@@ -17,6 +17,7 @@ const project = new awscdk.AwsCdkConstructLibrary({
   },
 
   releaseToNpm: true,
+  majorVersion: 0.1,
 
   // publishToNuget: {
   //   dotNetNamespace: 'Cdklabs.Skylight',
