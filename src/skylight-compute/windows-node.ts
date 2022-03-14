@@ -127,7 +127,8 @@ export class DomainWindowsNode extends Construct {
     });
 
     // Setting static logical ID for the Worker, to allow further customization
-    const workerName = 'EC2DomainWindowsNode-' + id;
+    const workerName = 'EC2DomainWindowsNode' + id;
+    workerName.replace(/[^0-9a-z]/gi, ''); //convert string to alphanumeric
 
     if (props.domainName && this.passwordObject) {
       this.passwordObject.grantRead(this.nodeRole);
