@@ -100,7 +100,7 @@ export class DomainWindowsNode extends Construct {
     super(scope, id);
     props.iamManagedPoliciesList = props.iamManagedPoliciesList ?? [
       iam.ManagedPolicy.fromAwsManagedPolicyName(
-        'AmazonSSMManagedInstanceCore'
+        'AmazonSSMManagedInstanceCore',
       ),
       iam.ManagedPolicy.fromAwsManagedPolicyName('SecretsManagerReadWrite'),
     ];
@@ -144,7 +144,7 @@ export class DomainWindowsNode extends Construct {
               `powershell.exe -command  "Invoke-Command -ScriptBlock {[string]$SecretAD  = '${this.passwordObject.secretName}' ;$SecretObj = Get-SECSecretValue -SecretId $SecretAD ;[PSCustomObject]$Secret = ($SecretObj.SecretString  | ConvertFrom-Json) ;$password   = $Secret.Password | ConvertTo-SecureString -asPlainText -Force ;$username   = 'Admin@' + '${props.domainName}' ;$credential = New-Object System.Management.Automation.PSCredential($username,$password) ;Add-Computer -DomainName ${props.domainName} -Credential $credential; Restart-Computer -Force}"`,
               {
                 waitAfterCompletion: ec2.InitCommandWaitDuration.forever(),
-              }
+              },
             ),
           ]),
           signal: new ec2.InitConfig([
@@ -155,7 +155,7 @@ export class DomainWindowsNode extends Construct {
               } --region=${Stack.of(this).region}`,
               {
                 waitAfterCompletion: ec2.InitCommandWaitDuration.none(),
-              }
+              },
             ),
           ]),
         },
@@ -194,7 +194,7 @@ export class DomainWindowsNode extends Construct {
           Stack.of(this).stackName
         } -r ${workerName} --configsets=domainJoinRestart --region ${
           Stack.of(this).region
-        }</powershell>`
+        }</powershell>`,
       );
 
       // Override the default 5M timeout to support longer Windows boot time
@@ -269,7 +269,7 @@ export class DomainWindowsNode extends Construct {
     this.instance.connections.allowFrom(
       ec2.Peer.ipv4(ipaddress),
       ec2.Port.tcp(3389),
-      'Allow RDP'
+      'Allow RDP',
     );
   }
 
@@ -298,7 +298,7 @@ export class DomainWindowsNode extends Construct {
       '$action = New-ScheduledTaskAction -Execute "Powershell.exe" -Argument $tempScriptPath',
       '$trigger =  New-ScheduledTaskTrigger -Once -At (get-date).AddSeconds(10); ',
       '$trigger.EndBoundary = (get-date).AddSeconds(60).ToString("s") ',
-      'Register-ScheduledTask -Force -Action $action -Trigger $trigger -TaskName "Task $PID to run with DomainAdmin" -Description "Workaround to run the code with domain admin" -RunLevel Highest -User $username -Password $Secret.Password'
+      'Register-ScheduledTask -Force -Action $action -Trigger $trigger -TaskName "Task $PID to run with DomainAdmin" -Description "Workaround to run the code with domain admin" -RunLevel Highest -User $username -Password $Secret.Password',
     );
     new ssm.CfnAssociation(this, id, {
       name: 'AWS-RunPowerShellScript',
@@ -329,7 +329,7 @@ export class DomainWindowsNode extends Construct {
             id: 'startInstance-' + this.instance.instanceId,
           },
         },
-      }
+      },
     );
   }
 }

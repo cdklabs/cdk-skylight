@@ -14,7 +14,6 @@ test('storageTest', () => {
     directoryId: 'd-1234567',
     vpc: vpc,
   });
-  storage.smbMountAddress();
   expect(storage).toHaveProperty(
     'fsxObject.cfnResourceType',
     'AWS::FSx::FileSystem',

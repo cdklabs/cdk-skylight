@@ -143,14 +143,6 @@ export class FSxWindows extends Construct {
       stringValue: this.fsxObject.getAtt('DNSName').toString(),
     });
   }
-  smbMountAddress(): string {
-    const fsxName = aws_ssm.StringParameter.valueForStringParameter(
-      this,
-      `/${this.ssmParameters.namespace}/${this.ssmParameters.dnsEndpoint}`
-    );
-
-    return fsxName;
-  }
 
   createWorker(domainName: string, domainPassword: ISecret): DomainWindowsNode {
     return new DomainWindowsNode(this, 'DomainWindowsNode', {
