@@ -22,6 +22,7 @@ import {
   Fn,
 } from 'aws-cdk-lib';
 import { CfnMicrosoftAD } from 'aws-cdk-lib/aws-directoryservice';
+import { SelectedSubnets } from 'aws-cdk-lib/aws-ec2';
 import { ISecret } from 'aws-cdk-lib/aws-secretsmanager';
 import { Construct } from 'constructs';
 import * as skylight from '../index';
@@ -57,7 +58,10 @@ export interface IAwsManagedMicrosoftAdProps {
    * The VPC to use, must have private subnets.
    */
   vpc: ec2.IVpc;
-
+  /**
+   * VPC subnet selection, subnets must be private and exactly 2
+   */
+  vpcSubnets?: ec2.SelectedSubnets;
   /**
    * The configuration store to save the directory parameters (After deployed)
    */
@@ -168,13 +172,21 @@ export class AwsManagedMicrosoftAd extends Construct {
       stringValue: this.props.secretName,
     });
 
-    const subnets =
-      props.vpc.selectSubnets({
-        subnetType: ec2.SubnetType.PRIVATE_WITH_NAT,
-      }) ??
-      props.vpc.selectSubnets({
-        subnetType: ec2.SubnetType.PRIVATE_ISOLATED,
-      });
+    let subnets: SelectedSubnets;
+    if (props.vpcSubnets) {
+      if (props.vpcSubnets.hasPublic || props.vpcSubnets.subnets.length !== 2) {
+        throw new Error('A public subnet or not exactly 2 subnets where passed in, please pass in two private subnets');
+      }
+      subnets = props.vpcSubnets;
+    } else {
+      subnets =
+        props.vpc.selectSubnets({
+          subnetType: ec2.SubnetType.PRIVATE_WITH_NAT,
+        }) ??
+        props.vpc.selectSubnets({
+          subnetType: ec2.SubnetType.PRIVATE_ISOLATED,
+        });
+    }
 
     new CfnOutput(this, 'secret-value-hint', {
       value: `aws secretsmanager get-secret-value --secret-id ${
