@@ -145,6 +145,9 @@
       "steps": [
         {
           "spawn": "package:js"
+        },
+        {
+          "spawn": "package:python"
         }
       ]
     },
@@ -154,6 +157,15 @@
       "steps": [
         {
           "exec": "jsii-pacmak -v --target js"
+        }
+      ]
+    },
+    "package:python": {
+      "name": "package:python",
+      "description": "Create python language bindings",
+      "steps": [
+        {
+          "exec": "jsii-pacmak -v --target python"
         }
       ]
     },
@@ -179,7 +191,7 @@
       "description": "Prepare a release from \"main\" branch",
       "env": {
         "RELEASE": "true",
-        "MAJOR": "0.1"
+        "MAJOR": "1"
       },
       "steps": [
         {

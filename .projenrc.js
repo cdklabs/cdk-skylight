@@ -9,15 +9,15 @@ const project = new awscdk.AwsCdkConstructLibrary({
   repositoryUrl: 'https://github.com/cdklabs/cdk-skylight.git',
   peerDeps: ['constructs', 'aws-cdk-lib'],
   gitignore: ['.DS_Store'],
-  autoApproveProjenUpgrades: true,
   autoApproveUpgrades: true,
+  autoMerge: true,
   autoApproveOptions: {
     allowedUsernames: ['cdklabs-automation'],
     secret: 'GITHUB_TOKEN',
   },
 
   releaseToNpm: true,
-  majorVersion: 0.1,
+  majorVersion: 1.0,
 
   // publishToNuget: {
   //   dotNetNamespace: 'Cdklabs.Skylight',
@@ -31,10 +31,10 @@ const project = new awscdk.AwsCdkConstructLibrary({
   //   mavenGroupId: 'io.github.cdklabs',
   // },
 
-  // publishToPypi: {
-  //   distName: 'cdk-skylight',
-  //   module: 'cdk_skylight',
-  // },
+  publishToPypi: {
+    distName: 'cdk-skylight',
+    module: 'cdk_skylight',
+  },
 });
 
 project.synth();
