@@ -200,7 +200,9 @@ export class AwsManagedMicrosoftAd extends Construct {
       this,
       'AWS-Managed-Microsoft-AD',
       {
-        password: this.secret.secretValueFromJson('Password').toString(),
+        password: this.secret
+          .secretValueFromJson('Password')
+          .unsafeUnwrap.toString(),
         edition: props.edition,
         name: this.props.domainName,
         vpcSettings: {
