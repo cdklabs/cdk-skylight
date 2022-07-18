@@ -31,7 +31,7 @@ export interface IRuntimeNodes {
   /**
    * Method to configure the Nodes to part of AD Domain
    * Secret: The secrets manager secret to use must be in format:
-   * '{Domain: <domain.name>, UserID: 'Admin', Password: '<password>'}' (From cdk-skylight.AwsManagedMicrosoftAd Object)
+   * '{Domain: <domain.name>, UserID: 'Admin', Password: '<password>'}' (From cdk-skylight.AwsManagedMicrosoftAdR53 Object)
    */
   addAdDependency?(
     adParametersStore: skylight.authentication.IAwsManagedMicrosoftAdParameters
@@ -107,31 +107,31 @@ export class WindowsEKSNodes extends Construct implements IRuntimeNodes {
         roleName: 'windows-eks-workers-instance-role',
         managedPolicies: [
           aws_iam.ManagedPolicy.fromAwsManagedPolicyName(
-            'AmazonSSMManagedInstanceCore',
+            'AmazonSSMManagedInstanceCore'
           ),
           aws_iam.ManagedPolicy.fromAwsManagedPolicyName(
-            'AmazonEKSWorkerNodePolicy',
+            'AmazonEKSWorkerNodePolicy'
           ),
           aws_iam.ManagedPolicy.fromAwsManagedPolicyName(
-            'AmazonEC2ContainerRegistryReadOnly',
+            'AmazonEC2ContainerRegistryReadOnly'
           ),
           aws_iam.ManagedPolicy.fromAwsManagedPolicyName(
-            'AmazonEKS_CNI_Policy',
+            'AmazonEKS_CNI_Policy'
           ),
           aws_iam.ManagedPolicy.fromAwsManagedPolicyName(
-            'AmazonSSMDirectoryServiceAccess',
+            'AmazonSSMDirectoryServiceAccess'
           ),
           aws_iam.ManagedPolicy.fromAwsManagedPolicyName(
-            'AWSKeyManagementServicePowerUser',
+            'AWSKeyManagementServicePowerUser'
           ),
           aws_iam.ManagedPolicy.fromAwsManagedPolicyName(
-            'AmazonEKSClusterPolicy',
+            'AmazonEKSClusterPolicy'
           ),
           aws_iam.ManagedPolicy.fromAwsManagedPolicyName(
-            'SecretsManagerReadWrite',
+            'SecretsManagerReadWrite'
           ),
         ],
-      },
+      }
     );
 
     this.asg = new aws_autoscaling.AutoScalingGroup(
@@ -145,13 +145,13 @@ export class WindowsEKSNodes extends Construct implements IRuntimeNodes {
         maxCapacity: 10,
         instanceType: props.instanceType,
         machineImage: windows_machineImage,
-      },
+      }
     );
 
     this.asgResource = this.asg.node.children.find(
       (c) =>
         (c as CfnResource).cfnResourceType ===
-        'AWS::AutoScaling::AutoScalingGroup',
+        'AWS::AutoScaling::AutoScalingGroup'
     ) as aws_autoscaling.CfnAutoScalingGroup;
   }
 
@@ -160,11 +160,11 @@ export class WindowsEKSNodes extends Construct implements IRuntimeNodes {
   }
 
   addAdDependency(
-    adParametersStore: skylight.authentication.IAwsManagedMicrosoftAdParameters,
+    adParametersStore: skylight.authentication.IAwsManagedMicrosoftAdParameters
   ) {
     const secretName = aws_ssm.StringParameter.valueForStringParameter(
       this,
-      `/${adParametersStore.namespace}/${adParametersStore.secretPointer}`,
+      `/${adParametersStore.namespace}/${adParametersStore.secretPointer}`
     );
 
     this.addUserData(`
@@ -199,7 +199,7 @@ export class WindowsEKSNodes extends Construct implements IRuntimeNodes {
     eksCluster: aws_eks.Cluster,
     privateSignerName: string,
     awsaccountid: string,
-    awsregion: string,
+    awsregion: string
   ) {
     const certmanager = new aws_iam.ManagedPolicy(this, 'webHookECR', {
       description: 'Allow WebHook',
@@ -236,7 +236,7 @@ export class WindowsEKSNodes extends Construct implements IRuntimeNodes {
             resources: [`arn:aws:eks:*:${awsaccountid}:cluster/*`],
           }),
         ],
-      },
+      }
     );
 
     const allowAuthorizationToken = new aws_iam.ManagedPolicy(
@@ -251,7 +251,7 @@ export class WindowsEKSNodes extends Construct implements IRuntimeNodes {
             resources: ['*'],
           }),
         ],
-      },
+      }
     );
 
     const node = new skylight.compute.DomainWindowsNode(
@@ -265,12 +265,12 @@ export class WindowsEKSNodes extends Construct implements IRuntimeNodes {
           describeCluster,
           allowAuthorizationToken,
           aws_iam.ManagedPolicy.fromAwsManagedPolicyName(
-            'AmazonSSMManagedInstanceCore',
+            'AmazonSSMManagedInstanceCore'
           ),
         ],
         amiName: '*amzn2-ami-hvm-x86_64*',
         instanceType: 't3.small',
-      },
+      }
     );
 
     this.asg.connections.allowFrom(node.instance, aws_ec2.Port.tcp(443));
@@ -288,23 +288,23 @@ export class WindowsEKSNodes extends Construct implements IRuntimeNodes {
         'cd amazon-eks-gmsa-admission-webhook-autoinstall/',
         `bash installation.sh ${awsaccountid} ${awsregion} ${eksCluster.clusterName} ${privateSignerName}/my-signer AL2`,
       ],
-      'webHookInstallation',
+      'webHookInstallation'
     );
   }
 
   addStorageDependency(
     adParametersStore: skylight.authentication.IAwsManagedMicrosoftAdParameters,
     fsxParametersStore: skylight.storage.IFSxWindowsParameters,
-    folderName: string,
+    folderName: string
   ) {
     const secretName = aws_ssm.StringParameter.valueForStringParameter(
       this,
-      `/${adParametersStore.namespace}/${adParametersStore.secretPointer}`,
+      `/${adParametersStore.namespace}/${adParametersStore.secretPointer}`
     );
 
     const fsxEndpoint = aws_ssm.StringParameter.valueForStringParameter(
       this,
-      `/${fsxParametersStore.namespace}/${fsxParametersStore.dnsEndpoint}`,
+      `/${fsxParametersStore.namespace}/${fsxParametersStore.dnsEndpoint}`
     );
 
     const smbPath = `\\\\${fsxEndpoint}\\${folderName}`;
@@ -363,11 +363,11 @@ export class WindowsEKSNodes extends Construct implements IRuntimeNodes {
   addLocalCredFile(
     adParametersStore: skylight.authentication.IAwsManagedMicrosoftAdParameters,
     ADGroupName: string,
-    AccountName: string,
+    AccountName: string
   ) {
     const secretName = aws_ssm.StringParameter.valueForStringParameter(
       this,
-      `/${adParametersStore.namespace}/${adParametersStore.secretPointer}`,
+      `/${adParametersStore.namespace}/${adParametersStore.secretPointer}`
     );
 
     const commands = [

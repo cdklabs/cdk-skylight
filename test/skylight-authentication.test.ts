@@ -20,15 +20,23 @@ const vpcWithCustomSubnets = new aws_ec2.Vpc(stack, 'vpcwithsub', {
 });
 
 test('authentication', () => {
-  const mad = new skylight.authentication.AwsManagedMicrosoftAd(
+  const mad = new skylight.authentication.AwsManagedMicrosoftAdR53(
     stack,
-    'AwsManagedMicrosoftAd',
+    'AwsManagedMicrosoftAdR53',
     {
       vpc: vpc,
       createWorker: true,
-    },
+    }
   );
-  const mad2 = new skylight.authentication.AwsManagedMicrosoftAd(
+  const madwithoutr53 = new skylight.authentication.AwsManagedMicrosoftAd(
+    stack,
+    'madwithoutr53',
+    {
+      vpc: vpc,
+      createWorker: false,
+    }
+  );
+  const mad2 = new skylight.authentication.AwsManagedMicrosoftAdR53(
     stack,
     'AwsManagedMicrosoftAd2',
     {
@@ -38,9 +46,9 @@ test('authentication', () => {
       domainName: 'test-domain',
       secretName: 'custom-secret-name',
       createWorker: false,
-    },
+    }
   );
-  const mad3 = new skylight.authentication.AwsManagedMicrosoftAd(
+  const mad3 = new skylight.authentication.AwsManagedMicrosoftAdR53(
     stack,
     'AwsManagedMicrosoftAd3',
     {
@@ -53,14 +61,16 @@ test('authentication', () => {
         directoryIDPointer: 'directory-pointer',
       },
       createWorker: false,
-    },
+    }
   );
-  const mad4 = new skylight.authentication.AwsManagedMicrosoftAd(
+  const mad4 = new skylight.authentication.AwsManagedMicrosoftAdR53(
     stack,
     'AwsManagedMicrosoftAd4',
     {
       vpc: vpcWithCustomSubnets,
-      vpcSubnets: vpcWithCustomSubnets.selectSubnets({ subnetGroupName: 'Data' }),
+      vpcSubnets: vpcWithCustomSubnets.selectSubnets({
+        subnetGroupName: 'Data',
+      }),
       edition: 'enterprise',
       secretName: 'custom-secret-name',
       configurationStore: {
@@ -69,25 +79,25 @@ test('authentication', () => {
         directoryIDPointer: 'directory-pointer',
       },
       createWorker: false,
-    },
+    }
   );
 
   mad.createADGroup('Test', 'test2');
   mad.createServiceAccount('test', 'Test2', 'test3');
   expect(mad2).toHaveProperty(
     'adParameters.namespace',
-    'cdk-skylight/authentication/mad',
+    'cdk-skylight/authentication/mad'
   );
   expect(mad3).toHaveProperty(
     'adParameters.namespace',
-    'custom-namespace/authentication/mad',
+    'custom-namespace/authentication/mad'
   );
   expect(mad).toHaveProperty(
     'microsoftAD.cfnResourceType',
-    'AWS::DirectoryService::MicrosoftAD',
+    'AWS::DirectoryService::MicrosoftAD'
   );
   expect(mad4).toHaveProperty(
     'microsoftAD.vpcSettings.subnetIds',
-    vpcWithCustomSubnets.selectSubnets({ subnetGroupName: 'Data' }).subnetIds,
+    vpcWithCustomSubnets.selectSubnets({ subnetGroupName: 'Data' }).subnetIds
   );
 });

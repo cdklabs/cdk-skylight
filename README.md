@@ -36,7 +36,7 @@ In your CDK App
 ```typescript
 import * as skylight from "cdk-skylight";
 
-new skylight.authentication.AwsManagedMicrosoftAd(scope: Construct, id: string, props: IAwsManagedMicrosoftAdProps)
+new skylight.authentication.AwsManagedMicrosoftAdR53(scope: Construct, id: string, props: IAwsManagedMicrosoftAdProps)
 
 ```
 
@@ -80,9 +80,9 @@ windowsNodeObject.openRDP('1.1.1.1/32');
 
 Library of Custom Authentication components
 
-### **AwsManagedMicrosoftAd** - Manged Active Directory with R53 Resolvers
+### **AwsManagedMicrosoftAd** - Managed Active Directory
 
-A Ad Authentication represents an integration pattern of Managed AD and Route 53 Resolver in a specific VPC, it will create Managed AD with the provided Secret (Secrets Manager) or generates a new Secret.
+Managed AD with Secret stored in secret manager
 
 The secret saved to SSM parameter store so others can use it with other Constructs (Such as Windows node or FSx)
 The provided VPC or the new created VPC will be configured to forward DNS requests to the Managed AD with Route53 Resolvers
@@ -93,12 +93,10 @@ The createADGroup() method creates an Active Directory permission group in the d
 Please note: When calling createADGroup() API, a Lambda will be created to start the worker machine (Using AWS-SDK),
 then each command will be scheduled with State Manager, and the instance will be shut down after complete.
 
-Example:
-
 ```typescript
 const ad = new skylight.authentication.AwsManagedMicrosoftAd(
   stack,
-  'AwsManagedMicrosoftAd',
+  'AwsManagedMicrosoftAdR53',
   {
     vpc: vpc,
     edition: 'enterprise', // Optional
@@ -111,6 +109,22 @@ const ad = new skylight.authentication.AwsManagedMicrosoftAd(
 ad.managedActiveDirectory.createADGroup(
   'MyADGroup', // AD group name
   'My AD Group Created by CDK-Skylight!' //AD Description
+);
+```
+
+### **AwsManagedMicrosoftAdR53** - Extenstion of Manged Active Directory with R53 Resolvers
+
+AwsManagedMicrosoftAdR53 represents an integration pattern of Managed AD and Route 53 Resolver in a specific VPC, it will create Managed AD with the provided Secret (Secrets Manager) or generates a new Secret.
+
+Example:
+
+```typescript
+const ad = new skylight.authentication.AwsManagedMicrosoftAdR53(
+  stack,
+  'AwsManagedMicrosoftAdR53',
+  {
+    vpc: vpc,
+  }
 );
 ```
 
