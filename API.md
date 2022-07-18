@@ -2,6 +2,234 @@
 
 ## Constructs <a name="Constructs" id="Constructs"></a>
 
+### AwsManagedMicrosoftAd <a name="AwsManagedMicrosoftAd" id="cdk-skylight.authentication.AwsManagedMicrosoftAd"></a>
+
+A Ad Authentication represents an integration pattern of Managed AD and Route 53 Resolver in a specific VPC.
+
+The Construct creates Managed AD with the provided Secret (Secrets Manager) or generates a new Secret.
+The secret saved to SSM parameter store so others can use it with other Constructs (Such as Windows node or FSx)
+The provided VPC or the new created VPC will be configured to forward DNS requests to the Managed AD with Route53 Resolvers
+The construct also creates (optionally) t3.nano machine that is part of the domain that can be used to run admin-tasks (such as createADGroup)
+
+The createADGroup() method creates an Active Directory permission group in the domain, using the domain admin user.
+Please note: When calling createADGroup() API, a Lambda will be created to start the worker machine (Using AWS-SDK),
+then each command will be scheduled with State Manager, and the instance will be shut down after complete.
+
+#### Initializers <a name="Initializers" id="cdk-skylight.authentication.AwsManagedMicrosoftAd.Initializer"></a>
+
+```typescript
+import { authentication } from 'cdk-skylight'
+
+new authentication.AwsManagedMicrosoftAd(scope: Construct, id: string, props: IAwsManagedMicrosoftAdProps)
+```
+
+| **Name** | **Type** | **Description** |
+| --- | --- | --- |
+| <code><a href="#cdk-skylight.authentication.AwsManagedMicrosoftAd.Initializer.parameter.scope">scope</a></code> | <code>constructs.Construct</code> | *No description.* |
+| <code><a href="#cdk-skylight.authentication.AwsManagedMicrosoftAd.Initializer.parameter.id">id</a></code> | <code>string</code> | *No description.* |
+| <code><a href="#cdk-skylight.authentication.AwsManagedMicrosoftAd.Initializer.parameter.props">props</a></code> | <code>cdk-skylight.authentication.IAwsManagedMicrosoftAdProps</code> | *No description.* |
+
+---
+
+##### `scope`<sup>Required</sup> <a name="scope" id="cdk-skylight.authentication.AwsManagedMicrosoftAd.Initializer.parameter.scope"></a>
+
+- *Type:* constructs.Construct
+
+---
+
+##### `id`<sup>Required</sup> <a name="id" id="cdk-skylight.authentication.AwsManagedMicrosoftAd.Initializer.parameter.id"></a>
+
+- *Type:* string
+
+---
+
+##### `props`<sup>Required</sup> <a name="props" id="cdk-skylight.authentication.AwsManagedMicrosoftAd.Initializer.parameter.props"></a>
+
+- *Type:* cdk-skylight.authentication.IAwsManagedMicrosoftAdProps
+
+---
+
+#### Methods <a name="Methods" id="Methods"></a>
+
+| **Name** | **Description** |
+| --- | --- |
+| <code><a href="#cdk-skylight.authentication.AwsManagedMicrosoftAd.toString">toString</a></code> | Returns a string representation of this construct. |
+| <code><a href="#cdk-skylight.authentication.AwsManagedMicrosoftAd.createADGroup">createADGroup</a></code> | *No description.* |
+| <code><a href="#cdk-skylight.authentication.AwsManagedMicrosoftAd.createServiceAccount">createServiceAccount</a></code> | *No description.* |
+| <code><a href="#cdk-skylight.authentication.AwsManagedMicrosoftAd.createWorker">createWorker</a></code> | *No description.* |
+
+---
+
+##### `toString` <a name="toString" id="cdk-skylight.authentication.AwsManagedMicrosoftAd.toString"></a>
+
+```typescript
+public toString(): string
+```
+
+Returns a string representation of this construct.
+
+##### `createADGroup` <a name="createADGroup" id="cdk-skylight.authentication.AwsManagedMicrosoftAd.createADGroup"></a>
+
+```typescript
+public createADGroup(groupName: string, groupDescription: string): void
+```
+
+###### `groupName`<sup>Required</sup> <a name="groupName" id="cdk-skylight.authentication.AwsManagedMicrosoftAd.createADGroup.parameter.groupName"></a>
+
+- *Type:* string
+
+---
+
+###### `groupDescription`<sup>Required</sup> <a name="groupDescription" id="cdk-skylight.authentication.AwsManagedMicrosoftAd.createADGroup.parameter.groupDescription"></a>
+
+- *Type:* string
+
+---
+
+##### `createServiceAccount` <a name="createServiceAccount" id="cdk-skylight.authentication.AwsManagedMicrosoftAd.createServiceAccount"></a>
+
+```typescript
+public createServiceAccount(adServiceAccountName: string, servicePrincipalNames: string, principalsAllowedToRetrieveManagedPassword: string): void
+```
+
+###### `adServiceAccountName`<sup>Required</sup> <a name="adServiceAccountName" id="cdk-skylight.authentication.AwsManagedMicrosoftAd.createServiceAccount.parameter.adServiceAccountName"></a>
+
+- *Type:* string
+
+---
+
+###### `servicePrincipalNames`<sup>Required</sup> <a name="servicePrincipalNames" id="cdk-skylight.authentication.AwsManagedMicrosoftAd.createServiceAccount.parameter.servicePrincipalNames"></a>
+
+- *Type:* string
+
+---
+
+###### `principalsAllowedToRetrieveManagedPassword`<sup>Required</sup> <a name="principalsAllowedToRetrieveManagedPassword" id="cdk-skylight.authentication.AwsManagedMicrosoftAd.createServiceAccount.parameter.principalsAllowedToRetrieveManagedPassword"></a>
+
+- *Type:* string
+
+---
+
+##### `createWorker` <a name="createWorker" id="cdk-skylight.authentication.AwsManagedMicrosoftAd.createWorker"></a>
+
+```typescript
+public createWorker(domainName: string, domainPassword: ISecret): DomainWindowsNode
+```
+
+###### `domainName`<sup>Required</sup> <a name="domainName" id="cdk-skylight.authentication.AwsManagedMicrosoftAd.createWorker.parameter.domainName"></a>
+
+- *Type:* string
+
+---
+
+###### `domainPassword`<sup>Required</sup> <a name="domainPassword" id="cdk-skylight.authentication.AwsManagedMicrosoftAd.createWorker.parameter.domainPassword"></a>
+
+- *Type:* aws-cdk-lib.aws_secretsmanager.ISecret
+
+---
+
+#### Static Functions <a name="Static Functions" id="Static Functions"></a>
+
+| **Name** | **Description** |
+| --- | --- |
+| <code><a href="#cdk-skylight.authentication.AwsManagedMicrosoftAd.isConstruct">isConstruct</a></code> | Checks if `x` is a construct. |
+
+---
+
+##### ~~`isConstruct`~~ <a name="isConstruct" id="cdk-skylight.authentication.AwsManagedMicrosoftAd.isConstruct"></a>
+
+```typescript
+import { authentication } from 'cdk-skylight'
+
+authentication.AwsManagedMicrosoftAd.isConstruct(x: any)
+```
+
+Checks if `x` is a construct.
+
+###### `x`<sup>Required</sup> <a name="x" id="cdk-skylight.authentication.AwsManagedMicrosoftAd.isConstruct.parameter.x"></a>
+
+- *Type:* any
+
+Any object.
+
+---
+
+#### Properties <a name="Properties" id="Properties"></a>
+
+| **Name** | **Type** | **Description** |
+| --- | --- | --- |
+| <code><a href="#cdk-skylight.authentication.AwsManagedMicrosoftAd.property.node">node</a></code> | <code>constructs.Node</code> | The tree node. |
+| <code><a href="#cdk-skylight.authentication.AwsManagedMicrosoftAd.property.adParameters">adParameters</a></code> | <code>cdk-skylight.authentication.IAwsManagedMicrosoftAdParameters</code> | *No description.* |
+| <code><a href="#cdk-skylight.authentication.AwsManagedMicrosoftAd.property.microsoftAD">microsoftAD</a></code> | <code>aws-cdk-lib.aws_directoryservice.CfnMicrosoftAD</code> | *No description.* |
+| <code><a href="#cdk-skylight.authentication.AwsManagedMicrosoftAd.property.props">props</a></code> | <code>cdk-skylight.authentication.IAwsManagedMicrosoftAdProps</code> | *No description.* |
+| <code><a href="#cdk-skylight.authentication.AwsManagedMicrosoftAd.property.secret">secret</a></code> | <code>aws-cdk-lib.aws_secretsmanager.ISecret</code> | *No description.* |
+| <code><a href="#cdk-skylight.authentication.AwsManagedMicrosoftAd.property.domainWindowsNode">domainWindowsNode</a></code> | <code>cdk-skylight.compute.DomainWindowsNode</code> | *No description.* |
+
+---
+
+##### `node`<sup>Required</sup> <a name="node" id="cdk-skylight.authentication.AwsManagedMicrosoftAd.property.node"></a>
+
+```typescript
+public readonly node: Node;
+```
+
+- *Type:* constructs.Node
+
+The tree node.
+
+---
+
+##### `adParameters`<sup>Required</sup> <a name="adParameters" id="cdk-skylight.authentication.AwsManagedMicrosoftAd.property.adParameters"></a>
+
+```typescript
+public readonly adParameters: IAwsManagedMicrosoftAdParameters;
+```
+
+- *Type:* cdk-skylight.authentication.IAwsManagedMicrosoftAdParameters
+
+---
+
+##### `microsoftAD`<sup>Required</sup> <a name="microsoftAD" id="cdk-skylight.authentication.AwsManagedMicrosoftAd.property.microsoftAD"></a>
+
+```typescript
+public readonly microsoftAD: CfnMicrosoftAD;
+```
+
+- *Type:* aws-cdk-lib.aws_directoryservice.CfnMicrosoftAD
+
+---
+
+##### `props`<sup>Required</sup> <a name="props" id="cdk-skylight.authentication.AwsManagedMicrosoftAd.property.props"></a>
+
+```typescript
+public readonly props: IAwsManagedMicrosoftAdProps;
+```
+
+- *Type:* cdk-skylight.authentication.IAwsManagedMicrosoftAdProps
+
+---
+
+##### `secret`<sup>Required</sup> <a name="secret" id="cdk-skylight.authentication.AwsManagedMicrosoftAd.property.secret"></a>
+
+```typescript
+public readonly secret: ISecret;
+```
+
+- *Type:* aws-cdk-lib.aws_secretsmanager.ISecret
+
+---
+
+##### `domainWindowsNode`<sup>Optional</sup> <a name="domainWindowsNode" id="cdk-skylight.authentication.AwsManagedMicrosoftAd.property.domainWindowsNode"></a>
+
+```typescript
+public readonly domainWindowsNode: DomainWindowsNode;
+```
+
+- *Type:* cdk-skylight.compute.DomainWindowsNode
+
+---
+
+
 ### AwsManagedMicrosoftAdR53 <a name="AwsManagedMicrosoftAdR53" id="cdk-skylight.authentication.AwsManagedMicrosoftAdR53"></a>
 
 A Ad Authentication represents an integration pattern of Managed AD and Route 53 Resolver in a specific VPC.
@@ -23,40 +251,40 @@ import { authentication } from 'cdk-skylight'
 new authentication.AwsManagedMicrosoftAdR53(scope: Construct, id: string, props: IAwsManagedMicrosoftAdProps)
 ```
 
-| **Name**                                                                                                           | **Type**                                                             | **Description**   |
-| ------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------- | ----------------- |
-| <code><a href="#cdk-skylight.authentication.AwsManagedMicrosoftAdR53.Initializer.parameter.scope">scope</a></code> | <code>constructs.Construct</code>                                    | _No description._ |
-| <code><a href="#cdk-skylight.authentication.AwsManagedMicrosoftAdR53.Initializer.parameter.id">id</a></code>       | <code>string</code>                                                  | _No description._ |
-| <code><a href="#cdk-skylight.authentication.AwsManagedMicrosoftAdR53.Initializer.parameter.props">props</a></code> | <code>cdk-skylight.authentication.IAwsManagedMicrosoftAdProps</code> | _No description._ |
+| **Name** | **Type** | **Description** |
+| --- | --- | --- |
+| <code><a href="#cdk-skylight.authentication.AwsManagedMicrosoftAdR53.Initializer.parameter.scope">scope</a></code> | <code>constructs.Construct</code> | *No description.* |
+| <code><a href="#cdk-skylight.authentication.AwsManagedMicrosoftAdR53.Initializer.parameter.id">id</a></code> | <code>string</code> | *No description.* |
+| <code><a href="#cdk-skylight.authentication.AwsManagedMicrosoftAdR53.Initializer.parameter.props">props</a></code> | <code>cdk-skylight.authentication.IAwsManagedMicrosoftAdProps</code> | *No description.* |
 
 ---
 
 ##### `scope`<sup>Required</sup> <a name="scope" id="cdk-skylight.authentication.AwsManagedMicrosoftAdR53.Initializer.parameter.scope"></a>
 
-- _Type:_ constructs.Construct
+- *Type:* constructs.Construct
 
 ---
 
 ##### `id`<sup>Required</sup> <a name="id" id="cdk-skylight.authentication.AwsManagedMicrosoftAdR53.Initializer.parameter.id"></a>
 
-- _Type:_ string
+- *Type:* string
 
 ---
 
 ##### `props`<sup>Required</sup> <a name="props" id="cdk-skylight.authentication.AwsManagedMicrosoftAdR53.Initializer.parameter.props"></a>
 
-- _Type:_ cdk-skylight.authentication.IAwsManagedMicrosoftAdProps
+- *Type:* cdk-skylight.authentication.IAwsManagedMicrosoftAdProps
 
 ---
 
 #### Methods <a name="Methods" id="Methods"></a>
 
-| **Name**                                                                                                                   | **Description**                                    |
-| -------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------- |
-| <code><a href="#cdk-skylight.authentication.AwsManagedMicrosoftAdR53.toString">toString</a></code>                         | Returns a string representation of this construct. |
-| <code><a href="#cdk-skylight.authentication.AwsManagedMicrosoftAdR53.createADGroup">createADGroup</a></code>               | _No description._                                  |
-| <code><a href="#cdk-skylight.authentication.AwsManagedMicrosoftAdR53.createServiceAccount">createServiceAccount</a></code> | _No description._                                  |
-| <code><a href="#cdk-skylight.authentication.AwsManagedMicrosoftAdR53.createWorker">createWorker</a></code>                 | _No description._                                  |
+| **Name** | **Description** |
+| --- | --- |
+| <code><a href="#cdk-skylight.authentication.AwsManagedMicrosoftAdR53.toString">toString</a></code> | Returns a string representation of this construct. |
+| <code><a href="#cdk-skylight.authentication.AwsManagedMicrosoftAdR53.createADGroup">createADGroup</a></code> | *No description.* |
+| <code><a href="#cdk-skylight.authentication.AwsManagedMicrosoftAdR53.createServiceAccount">createServiceAccount</a></code> | *No description.* |
+| <code><a href="#cdk-skylight.authentication.AwsManagedMicrosoftAdR53.createWorker">createWorker</a></code> | *No description.* |
 
 ---
 
@@ -76,13 +304,13 @@ public createADGroup(groupName: string, groupDescription: string): void
 
 ###### `groupName`<sup>Required</sup> <a name="groupName" id="cdk-skylight.authentication.AwsManagedMicrosoftAdR53.createADGroup.parameter.groupName"></a>
 
-- _Type:_ string
+- *Type:* string
 
 ---
 
 ###### `groupDescription`<sup>Required</sup> <a name="groupDescription" id="cdk-skylight.authentication.AwsManagedMicrosoftAdR53.createADGroup.parameter.groupDescription"></a>
 
-- _Type:_ string
+- *Type:* string
 
 ---
 
@@ -94,19 +322,19 @@ public createServiceAccount(adServiceAccountName: string, servicePrincipalNames:
 
 ###### `adServiceAccountName`<sup>Required</sup> <a name="adServiceAccountName" id="cdk-skylight.authentication.AwsManagedMicrosoftAdR53.createServiceAccount.parameter.adServiceAccountName"></a>
 
-- _Type:_ string
+- *Type:* string
 
 ---
 
 ###### `servicePrincipalNames`<sup>Required</sup> <a name="servicePrincipalNames" id="cdk-skylight.authentication.AwsManagedMicrosoftAdR53.createServiceAccount.parameter.servicePrincipalNames"></a>
 
-- _Type:_ string
+- *Type:* string
 
 ---
 
 ###### `principalsAllowedToRetrieveManagedPassword`<sup>Required</sup> <a name="principalsAllowedToRetrieveManagedPassword" id="cdk-skylight.authentication.AwsManagedMicrosoftAdR53.createServiceAccount.parameter.principalsAllowedToRetrieveManagedPassword"></a>
 
-- _Type:_ string
+- *Type:* string
 
 ---
 
@@ -118,20 +346,20 @@ public createWorker(domainName: string, domainPassword: ISecret): DomainWindowsN
 
 ###### `domainName`<sup>Required</sup> <a name="domainName" id="cdk-skylight.authentication.AwsManagedMicrosoftAdR53.createWorker.parameter.domainName"></a>
 
-- _Type:_ string
+- *Type:* string
 
 ---
 
 ###### `domainPassword`<sup>Required</sup> <a name="domainPassword" id="cdk-skylight.authentication.AwsManagedMicrosoftAdR53.createWorker.parameter.domainPassword"></a>
 
-- _Type:_ aws-cdk-lib.aws_secretsmanager.ISecret
+- *Type:* aws-cdk-lib.aws_secretsmanager.ISecret
 
 ---
 
 #### Static Functions <a name="Static Functions" id="Static Functions"></a>
 
-| **Name**                                                                                                 | **Description**               |
-| -------------------------------------------------------------------------------------------------------- | ----------------------------- |
+| **Name** | **Description** |
+| --- | --- |
 | <code><a href="#cdk-skylight.authentication.AwsManagedMicrosoftAdR53.isConstruct">isConstruct</a></code> | Checks if `x` is a construct. |
 
 ---
@@ -148,7 +376,7 @@ Checks if `x` is a construct.
 
 ###### `x`<sup>Required</sup> <a name="x" id="cdk-skylight.authentication.AwsManagedMicrosoftAdR53.isConstruct.parameter.x"></a>
 
-- _Type:_ any
+- *Type:* any
 
 Any object.
 
@@ -156,14 +384,14 @@ Any object.
 
 #### Properties <a name="Properties" id="Properties"></a>
 
-| **Name**                                                                                                                      | **Type**                                                                  | **Description**   |
-| ----------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- | ----------------- |
-| <code><a href="#cdk-skylight.authentication.AwsManagedMicrosoftAdR53.property.node">node</a></code>                           | <code>constructs.Node</code>                                              | The tree node.    |
-| <code><a href="#cdk-skylight.authentication.AwsManagedMicrosoftAdR53.property.adParameters">adParameters</a></code>           | <code>cdk-skylight.authentication.IAwsManagedMicrosoftAdParameters</code> | _No description._ |
-| <code><a href="#cdk-skylight.authentication.AwsManagedMicrosoftAdR53.property.microsoftAD">microsoftAD</a></code>             | <code>aws-cdk-lib.aws_directoryservice.CfnMicrosoftAD</code>              | _No description._ |
-| <code><a href="#cdk-skylight.authentication.AwsManagedMicrosoftAdR53.property.props">props</a></code>                         | <code>cdk-skylight.authentication.IAwsManagedMicrosoftAdProps</code>      | _No description._ |
-| <code><a href="#cdk-skylight.authentication.AwsManagedMicrosoftAdR53.property.secret">secret</a></code>                       | <code>aws-cdk-lib.aws_secretsmanager.ISecret</code>                       | _No description._ |
-| <code><a href="#cdk-skylight.authentication.AwsManagedMicrosoftAdR53.property.domainWindowsNode">domainWindowsNode</a></code> | <code>cdk-skylight.compute.DomainWindowsNode</code>                       | _No description._ |
+| **Name** | **Type** | **Description** |
+| --- | --- | --- |
+| <code><a href="#cdk-skylight.authentication.AwsManagedMicrosoftAdR53.property.node">node</a></code> | <code>constructs.Node</code> | The tree node. |
+| <code><a href="#cdk-skylight.authentication.AwsManagedMicrosoftAdR53.property.adParameters">adParameters</a></code> | <code>cdk-skylight.authentication.IAwsManagedMicrosoftAdParameters</code> | *No description.* |
+| <code><a href="#cdk-skylight.authentication.AwsManagedMicrosoftAdR53.property.microsoftAD">microsoftAD</a></code> | <code>aws-cdk-lib.aws_directoryservice.CfnMicrosoftAD</code> | *No description.* |
+| <code><a href="#cdk-skylight.authentication.AwsManagedMicrosoftAdR53.property.props">props</a></code> | <code>cdk-skylight.authentication.IAwsManagedMicrosoftAdProps</code> | *No description.* |
+| <code><a href="#cdk-skylight.authentication.AwsManagedMicrosoftAdR53.property.secret">secret</a></code> | <code>aws-cdk-lib.aws_secretsmanager.ISecret</code> | *No description.* |
+| <code><a href="#cdk-skylight.authentication.AwsManagedMicrosoftAdR53.property.domainWindowsNode">domainWindowsNode</a></code> | <code>cdk-skylight.compute.DomainWindowsNode</code> | *No description.* |
 
 ---
 
@@ -173,7 +401,7 @@ Any object.
 public readonly node: Node;
 ```
 
-- _Type:_ constructs.Node
+- *Type:* constructs.Node
 
 The tree node.
 
@@ -185,7 +413,7 @@ The tree node.
 public readonly adParameters: IAwsManagedMicrosoftAdParameters;
 ```
 
-- _Type:_ cdk-skylight.authentication.IAwsManagedMicrosoftAdParameters
+- *Type:* cdk-skylight.authentication.IAwsManagedMicrosoftAdParameters
 
 ---
 
@@ -195,7 +423,7 @@ public readonly adParameters: IAwsManagedMicrosoftAdParameters;
 public readonly microsoftAD: CfnMicrosoftAD;
 ```
 
-- _Type:_ aws-cdk-lib.aws_directoryservice.CfnMicrosoftAD
+- *Type:* aws-cdk-lib.aws_directoryservice.CfnMicrosoftAD
 
 ---
 
@@ -205,7 +433,7 @@ public readonly microsoftAD: CfnMicrosoftAD;
 public readonly props: IAwsManagedMicrosoftAdProps;
 ```
 
-- _Type:_ cdk-skylight.authentication.IAwsManagedMicrosoftAdProps
+- *Type:* cdk-skylight.authentication.IAwsManagedMicrosoftAdProps
 
 ---
 
@@ -215,7 +443,7 @@ public readonly props: IAwsManagedMicrosoftAdProps;
 public readonly secret: ISecret;
 ```
 
-- _Type:_ aws-cdk-lib.aws_secretsmanager.ISecret
+- *Type:* aws-cdk-lib.aws_secretsmanager.ISecret
 
 ---
 
@@ -225,9 +453,10 @@ public readonly secret: ISecret;
 public readonly domainWindowsNode: DomainWindowsNode;
 ```
 
-- _Type:_ cdk-skylight.compute.DomainWindowsNode
+- *Type:* cdk-skylight.compute.DomainWindowsNode
 
 ---
+
 
 ### DomainWindowsNode <a name="DomainWindowsNode" id="cdk-skylight.compute.DomainWindowsNode"></a>
 
@@ -248,42 +477,42 @@ import { compute } from 'cdk-skylight'
 new compute.DomainWindowsNode(scope: Construct, id: string, props: IDomainWindowsNodeProps)
 ```
 
-| **Name**                                                                                             | **Type**                                                  | **Description**   |
-| ---------------------------------------------------------------------------------------------------- | --------------------------------------------------------- | ----------------- |
-| <code><a href="#cdk-skylight.compute.DomainWindowsNode.Initializer.parameter.scope">scope</a></code> | <code>constructs.Construct</code>                         | _No description._ |
-| <code><a href="#cdk-skylight.compute.DomainWindowsNode.Initializer.parameter.id">id</a></code>       | <code>string</code>                                       | _No description._ |
-| <code><a href="#cdk-skylight.compute.DomainWindowsNode.Initializer.parameter.props">props</a></code> | <code>cdk-skylight.compute.IDomainWindowsNodeProps</code> | _No description._ |
+| **Name** | **Type** | **Description** |
+| --- | --- | --- |
+| <code><a href="#cdk-skylight.compute.DomainWindowsNode.Initializer.parameter.scope">scope</a></code> | <code>constructs.Construct</code> | *No description.* |
+| <code><a href="#cdk-skylight.compute.DomainWindowsNode.Initializer.parameter.id">id</a></code> | <code>string</code> | *No description.* |
+| <code><a href="#cdk-skylight.compute.DomainWindowsNode.Initializer.parameter.props">props</a></code> | <code>cdk-skylight.compute.IDomainWindowsNodeProps</code> | *No description.* |
 
 ---
 
 ##### `scope`<sup>Required</sup> <a name="scope" id="cdk-skylight.compute.DomainWindowsNode.Initializer.parameter.scope"></a>
 
-- _Type:_ constructs.Construct
+- *Type:* constructs.Construct
 
 ---
 
 ##### `id`<sup>Required</sup> <a name="id" id="cdk-skylight.compute.DomainWindowsNode.Initializer.parameter.id"></a>
 
-- _Type:_ string
+- *Type:* string
 
 ---
 
 ##### `props`<sup>Required</sup> <a name="props" id="cdk-skylight.compute.DomainWindowsNode.Initializer.parameter.props"></a>
 
-- _Type:_ cdk-skylight.compute.IDomainWindowsNodeProps
+- *Type:* cdk-skylight.compute.IDomainWindowsNodeProps
 
 ---
 
 #### Methods <a name="Methods" id="Methods"></a>
 
-| **Name**                                                                                                     | **Description**                                                                                                                                                                                                                                                                                                                                     |
-| ------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| <code><a href="#cdk-skylight.compute.DomainWindowsNode.toString">toString</a></code>                         | Returns a string representation of this construct.                                                                                                                                                                                                                                                                                                  |
-| <code><a href="#cdk-skylight.compute.DomainWindowsNode.openRDP">openRDP</a></code>                           | Open the security group of the Node Node to specific IP address on port 3389 i.e: openRDP("1.1.1.1/32").                                                                                                                                                                                                                                            |
-| <code><a href="#cdk-skylight.compute.DomainWindowsNode.runPsCommands">runPsCommands</a></code>               | Running PowerShell scripts on the Node with SSM Document.                                                                                                                                                                                                                                                                                           |
+| **Name** | **Description** |
+| --- | --- |
+| <code><a href="#cdk-skylight.compute.DomainWindowsNode.toString">toString</a></code> | Returns a string representation of this construct. |
+| <code><a href="#cdk-skylight.compute.DomainWindowsNode.openRDP">openRDP</a></code> | Open the security group of the Node Node to specific IP address on port 3389 i.e: openRDP("1.1.1.1/32"). |
+| <code><a href="#cdk-skylight.compute.DomainWindowsNode.runPsCommands">runPsCommands</a></code> | Running PowerShell scripts on the Node with SSM Document. |
 | <code><a href="#cdk-skylight.compute.DomainWindowsNode.runPSwithDomainAdmin">runPSwithDomainAdmin</a></code> | Running PowerShell scripts on the Node with SSM Document with Domain Admin (Using the Secret used to join the machine to the domain) i.e: runPsCommands(["Write-host 'Hello world'", "Write-host 'Second command'"], "myScript") The provided psCommands will be stored in C:\Scripts and will be run with scheduled task with Domain Admin rights. |
-| <code><a href="#cdk-skylight.compute.DomainWindowsNode.runShellCommands">runShellCommands</a></code>         | Running bash scripts on the Node with SSM Document.                                                                                                                                                                                                                                                                                                 |
-| <code><a href="#cdk-skylight.compute.DomainWindowsNode.startInstance">startInstance</a></code>               | _No description._                                                                                                                                                                                                                                                                                                                                   |
+| <code><a href="#cdk-skylight.compute.DomainWindowsNode.runShellCommands">runShellCommands</a></code> | Running bash scripts on the Node with SSM Document. |
+| <code><a href="#cdk-skylight.compute.DomainWindowsNode.startInstance">startInstance</a></code> | *No description.* |
 
 ---
 
@@ -305,7 +534,7 @@ Open the security group of the Node Node to specific IP address on port 3389 i.e
 
 ###### `ipaddress`<sup>Required</sup> <a name="ipaddress" id="cdk-skylight.compute.DomainWindowsNode.openRDP.parameter.ipaddress"></a>
 
-- _Type:_ string
+- *Type:* string
 
 ---
 
@@ -321,13 +550,13 @@ i.e: runPsCommands(["Write-host 'Hello world'", "Write-host 'Second command'"], 
 
 ###### `psCommands`<sup>Required</sup> <a name="psCommands" id="cdk-skylight.compute.DomainWindowsNode.runPsCommands.parameter.psCommands"></a>
 
-- _Type:_ string[]
+- *Type:* string[]
 
 ---
 
 ###### `id`<sup>Required</sup> <a name="id" id="cdk-skylight.compute.DomainWindowsNode.runPsCommands.parameter.id"></a>
 
-- _Type:_ string
+- *Type:* string
 
 ---
 
@@ -341,13 +570,13 @@ Running PowerShell scripts on the Node with SSM Document with Domain Admin (Usin
 
 ###### `psCommands`<sup>Required</sup> <a name="psCommands" id="cdk-skylight.compute.DomainWindowsNode.runPSwithDomainAdmin.parameter.psCommands"></a>
 
-- _Type:_ string[]
+- *Type:* string[]
 
 ---
 
 ###### `id`<sup>Required</sup> <a name="id" id="cdk-skylight.compute.DomainWindowsNode.runPSwithDomainAdmin.parameter.id"></a>
 
-- _Type:_ string
+- *Type:* string
 
 ---
 
@@ -363,13 +592,13 @@ i.e: runPsCommands(["echo 'hello world'", "echo 'Second command'"], "myScript")
 
 ###### `ShellCommands`<sup>Required</sup> <a name="ShellCommands" id="cdk-skylight.compute.DomainWindowsNode.runShellCommands.parameter.ShellCommands"></a>
 
-- _Type:_ string[]
+- *Type:* string[]
 
 ---
 
 ###### `id`<sup>Required</sup> <a name="id" id="cdk-skylight.compute.DomainWindowsNode.runShellCommands.parameter.id"></a>
 
-- _Type:_ string
+- *Type:* string
 
 ---
 
@@ -381,8 +610,8 @@ public startInstance(): void
 
 #### Static Functions <a name="Static Functions" id="Static Functions"></a>
 
-| **Name**                                                                                   | **Description**               |
-| ------------------------------------------------------------------------------------------ | ----------------------------- |
+| **Name** | **Description** |
+| --- | --- |
 | <code><a href="#cdk-skylight.compute.DomainWindowsNode.isConstruct">isConstruct</a></code> | Checks if `x` is a construct. |
 
 ---
@@ -399,7 +628,7 @@ Checks if `x` is a construct.
 
 ###### `x`<sup>Required</sup> <a name="x" id="cdk-skylight.compute.DomainWindowsNode.isConstruct.parameter.x"></a>
 
-- _Type:_ any
+- *Type:* any
 
 Any object.
 
@@ -407,13 +636,13 @@ Any object.
 
 #### Properties <a name="Properties" id="Properties"></a>
 
-| **Name**                                                                                                  | **Type**                                            | **Description**   |
-| --------------------------------------------------------------------------------------------------------- | --------------------------------------------------- | ----------------- |
-| <code><a href="#cdk-skylight.compute.DomainWindowsNode.property.node">node</a></code>                     | <code>constructs.Node</code>                        | The tree node.    |
-| <code><a href="#cdk-skylight.compute.DomainWindowsNode.property.instance">instance</a></code>             | <code>aws-cdk-lib.aws_ec2.Instance</code>           | _No description._ |
-| <code><a href="#cdk-skylight.compute.DomainWindowsNode.property.nodeRole">nodeRole</a></code>             | <code>aws-cdk-lib.aws_iam.Role</code>               | _No description._ |
-| <code><a href="#cdk-skylight.compute.DomainWindowsNode.property.vpc">vpc</a></code>                       | <code>aws-cdk-lib.aws_ec2.IVpc</code>               | _No description._ |
-| <code><a href="#cdk-skylight.compute.DomainWindowsNode.property.passwordObject">passwordObject</a></code> | <code>aws-cdk-lib.aws_secretsmanager.ISecret</code> | _No description._ |
+| **Name** | **Type** | **Description** |
+| --- | --- | --- |
+| <code><a href="#cdk-skylight.compute.DomainWindowsNode.property.node">node</a></code> | <code>constructs.Node</code> | The tree node. |
+| <code><a href="#cdk-skylight.compute.DomainWindowsNode.property.instance">instance</a></code> | <code>aws-cdk-lib.aws_ec2.Instance</code> | *No description.* |
+| <code><a href="#cdk-skylight.compute.DomainWindowsNode.property.nodeRole">nodeRole</a></code> | <code>aws-cdk-lib.aws_iam.Role</code> | *No description.* |
+| <code><a href="#cdk-skylight.compute.DomainWindowsNode.property.vpc">vpc</a></code> | <code>aws-cdk-lib.aws_ec2.IVpc</code> | *No description.* |
+| <code><a href="#cdk-skylight.compute.DomainWindowsNode.property.passwordObject">passwordObject</a></code> | <code>aws-cdk-lib.aws_secretsmanager.ISecret</code> | *No description.* |
 
 ---
 
@@ -423,7 +652,7 @@ Any object.
 public readonly node: Node;
 ```
 
-- _Type:_ constructs.Node
+- *Type:* constructs.Node
 
 The tree node.
 
@@ -435,7 +664,7 @@ The tree node.
 public readonly instance: Instance;
 ```
 
-- _Type:_ aws-cdk-lib.aws_ec2.Instance
+- *Type:* aws-cdk-lib.aws_ec2.Instance
 
 ---
 
@@ -445,7 +674,7 @@ public readonly instance: Instance;
 public readonly nodeRole: Role;
 ```
 
-- _Type:_ aws-cdk-lib.aws_iam.Role
+- *Type:* aws-cdk-lib.aws_iam.Role
 
 ---
 
@@ -455,7 +684,7 @@ public readonly nodeRole: Role;
 public readonly vpc: IVpc;
 ```
 
-- _Type:_ aws-cdk-lib.aws_ec2.IVpc
+- *Type:* aws-cdk-lib.aws_ec2.IVpc
 
 ---
 
@@ -465,9 +694,10 @@ public readonly vpc: IVpc;
 public readonly passwordObject: ISecret;
 ```
 
-- _Type:_ aws-cdk-lib.aws_secretsmanager.ISecret
+- *Type:* aws-cdk-lib.aws_secretsmanager.ISecret
 
 ---
+
 
 ### FSxWindows <a name="FSxWindows" id="cdk-skylight.storage.FSxWindows"></a>
 
@@ -488,39 +718,39 @@ import { storage } from 'cdk-skylight'
 new storage.FSxWindows(scope: Construct, id: string, props: IFSxWindowsProps)
 ```
 
-| **Name**                                                                                      | **Type**                                           | **Description**   |
-| --------------------------------------------------------------------------------------------- | -------------------------------------------------- | ----------------- |
-| <code><a href="#cdk-skylight.storage.FSxWindows.Initializer.parameter.scope">scope</a></code> | <code>constructs.Construct</code>                  | _No description._ |
-| <code><a href="#cdk-skylight.storage.FSxWindows.Initializer.parameter.id">id</a></code>       | <code>string</code>                                | _No description._ |
-| <code><a href="#cdk-skylight.storage.FSxWindows.Initializer.parameter.props">props</a></code> | <code>cdk-skylight.storage.IFSxWindowsProps</code> | _No description._ |
+| **Name** | **Type** | **Description** |
+| --- | --- | --- |
+| <code><a href="#cdk-skylight.storage.FSxWindows.Initializer.parameter.scope">scope</a></code> | <code>constructs.Construct</code> | *No description.* |
+| <code><a href="#cdk-skylight.storage.FSxWindows.Initializer.parameter.id">id</a></code> | <code>string</code> | *No description.* |
+| <code><a href="#cdk-skylight.storage.FSxWindows.Initializer.parameter.props">props</a></code> | <code>cdk-skylight.storage.IFSxWindowsProps</code> | *No description.* |
 
 ---
 
 ##### `scope`<sup>Required</sup> <a name="scope" id="cdk-skylight.storage.FSxWindows.Initializer.parameter.scope"></a>
 
-- _Type:_ constructs.Construct
+- *Type:* constructs.Construct
 
 ---
 
 ##### `id`<sup>Required</sup> <a name="id" id="cdk-skylight.storage.FSxWindows.Initializer.parameter.id"></a>
 
-- _Type:_ string
+- *Type:* string
 
 ---
 
 ##### `props`<sup>Required</sup> <a name="props" id="cdk-skylight.storage.FSxWindows.Initializer.parameter.props"></a>
 
-- _Type:_ cdk-skylight.storage.IFSxWindowsProps
+- *Type:* cdk-skylight.storage.IFSxWindowsProps
 
 ---
 
 #### Methods <a name="Methods" id="Methods"></a>
 
-| **Name**                                                                              | **Description**                                    |
-| ------------------------------------------------------------------------------------- | -------------------------------------------------- |
-| <code><a href="#cdk-skylight.storage.FSxWindows.toString">toString</a></code>         | Returns a string representation of this construct. |
-| <code><a href="#cdk-skylight.storage.FSxWindows.createFolder">createFolder</a></code> | _No description._                                  |
-| <code><a href="#cdk-skylight.storage.FSxWindows.createWorker">createWorker</a></code> | _No description._                                  |
+| **Name** | **Description** |
+| --- | --- |
+| <code><a href="#cdk-skylight.storage.FSxWindows.toString">toString</a></code> | Returns a string representation of this construct. |
+| <code><a href="#cdk-skylight.storage.FSxWindows.createFolder">createFolder</a></code> | *No description.* |
+| <code><a href="#cdk-skylight.storage.FSxWindows.createWorker">createWorker</a></code> | *No description.* |
 
 ---
 
@@ -540,19 +770,19 @@ public createFolder(worker: DomainWindowsNode, folderName: string, secretName: I
 
 ###### `worker`<sup>Required</sup> <a name="worker" id="cdk-skylight.storage.FSxWindows.createFolder.parameter.worker"></a>
 
-- _Type:_ cdk-skylight.compute.DomainWindowsNode
+- *Type:* cdk-skylight.compute.DomainWindowsNode
 
 ---
 
 ###### `folderName`<sup>Required</sup> <a name="folderName" id="cdk-skylight.storage.FSxWindows.createFolder.parameter.folderName"></a>
 
-- _Type:_ string
+- *Type:* string
 
 ---
 
 ###### `secretName`<sup>Required</sup> <a name="secretName" id="cdk-skylight.storage.FSxWindows.createFolder.parameter.secretName"></a>
 
-- _Type:_ aws-cdk-lib.aws_secretsmanager.ISecret
+- *Type:* aws-cdk-lib.aws_secretsmanager.ISecret
 
 ---
 
@@ -564,20 +794,20 @@ public createWorker(domainName: string, domainPassword: ISecret): DomainWindowsN
 
 ###### `domainName`<sup>Required</sup> <a name="domainName" id="cdk-skylight.storage.FSxWindows.createWorker.parameter.domainName"></a>
 
-- _Type:_ string
+- *Type:* string
 
 ---
 
 ###### `domainPassword`<sup>Required</sup> <a name="domainPassword" id="cdk-skylight.storage.FSxWindows.createWorker.parameter.domainPassword"></a>
 
-- _Type:_ aws-cdk-lib.aws_secretsmanager.ISecret
+- *Type:* aws-cdk-lib.aws_secretsmanager.ISecret
 
 ---
 
 #### Static Functions <a name="Static Functions" id="Static Functions"></a>
 
-| **Name**                                                                            | **Description**               |
-| ----------------------------------------------------------------------------------- | ----------------------------- |
+| **Name** | **Description** |
+| --- | --- |
 | <code><a href="#cdk-skylight.storage.FSxWindows.isConstruct">isConstruct</a></code> | Checks if `x` is a construct. |
 
 ---
@@ -594,7 +824,7 @@ Checks if `x` is a construct.
 
 ###### `x`<sup>Required</sup> <a name="x" id="cdk-skylight.storage.FSxWindows.isConstruct.parameter.x"></a>
 
-- _Type:_ any
+- *Type:* any
 
 Any object.
 
@@ -602,12 +832,12 @@ Any object.
 
 #### Properties <a name="Properties" id="Properties"></a>
 
-| **Name**                                                                                         | **Type**                                                | **Description**   |
-| ------------------------------------------------------------------------------------------------ | ------------------------------------------------------- | ----------------- |
-| <code><a href="#cdk-skylight.storage.FSxWindows.property.node">node</a></code>                   | <code>constructs.Node</code>                            | The tree node.    |
-| <code><a href="#cdk-skylight.storage.FSxWindows.property.fsxObject">fsxObject</a></code>         | <code>aws-cdk-lib.aws_fsx.CfnFileSystem</code>          | _No description._ |
-| <code><a href="#cdk-skylight.storage.FSxWindows.property.props">props</a></code>                 | <code>cdk-skylight.storage.IFSxWindowsProps</code>      | _No description._ |
-| <code><a href="#cdk-skylight.storage.FSxWindows.property.ssmParameters">ssmParameters</a></code> | <code>cdk-skylight.storage.IFSxWindowsParameters</code> | _No description._ |
+| **Name** | **Type** | **Description** |
+| --- | --- | --- |
+| <code><a href="#cdk-skylight.storage.FSxWindows.property.node">node</a></code> | <code>constructs.Node</code> | The tree node. |
+| <code><a href="#cdk-skylight.storage.FSxWindows.property.fsxObject">fsxObject</a></code> | <code>aws-cdk-lib.aws_fsx.CfnFileSystem</code> | *No description.* |
+| <code><a href="#cdk-skylight.storage.FSxWindows.property.props">props</a></code> | <code>cdk-skylight.storage.IFSxWindowsProps</code> | *No description.* |
+| <code><a href="#cdk-skylight.storage.FSxWindows.property.ssmParameters">ssmParameters</a></code> | <code>cdk-skylight.storage.IFSxWindowsParameters</code> | *No description.* |
 
 ---
 
@@ -617,7 +847,7 @@ Any object.
 public readonly node: Node;
 ```
 
-- _Type:_ constructs.Node
+- *Type:* constructs.Node
 
 The tree node.
 
@@ -629,7 +859,7 @@ The tree node.
 public readonly fsxObject: CfnFileSystem;
 ```
 
-- _Type:_ aws-cdk-lib.aws_fsx.CfnFileSystem
+- *Type:* aws-cdk-lib.aws_fsx.CfnFileSystem
 
 ---
 
@@ -639,7 +869,7 @@ public readonly fsxObject: CfnFileSystem;
 public readonly props: IFSxWindowsProps;
 ```
 
-- _Type:_ cdk-skylight.storage.IFSxWindowsProps
+- *Type:* cdk-skylight.storage.IFSxWindowsProps
 
 ---
 
@@ -649,9 +879,10 @@ public readonly props: IFSxWindowsProps;
 public readonly ssmParameters: IFSxWindowsParameters;
 ```
 
-- _Type:_ cdk-skylight.storage.IFSxWindowsParameters
+- *Type:* cdk-skylight.storage.IFSxWindowsParameters
 
 ---
+
 
 ### WindowsEKSCluster <a name="WindowsEKSCluster" id="cdk-skylight.compute.WindowsEKSCluster"></a>
 
@@ -663,36 +894,36 @@ import { compute } from 'cdk-skylight'
 new compute.WindowsEKSCluster(scope: Construct, id: string, props: IWindowsEKSClusterProps)
 ```
 
-| **Name**                                                                                             | **Type**                                                  | **Description**   |
-| ---------------------------------------------------------------------------------------------------- | --------------------------------------------------------- | ----------------- |
-| <code><a href="#cdk-skylight.compute.WindowsEKSCluster.Initializer.parameter.scope">scope</a></code> | <code>constructs.Construct</code>                         | _No description._ |
-| <code><a href="#cdk-skylight.compute.WindowsEKSCluster.Initializer.parameter.id">id</a></code>       | <code>string</code>                                       | _No description._ |
-| <code><a href="#cdk-skylight.compute.WindowsEKSCluster.Initializer.parameter.props">props</a></code> | <code>cdk-skylight.compute.IWindowsEKSClusterProps</code> | _No description._ |
+| **Name** | **Type** | **Description** |
+| --- | --- | --- |
+| <code><a href="#cdk-skylight.compute.WindowsEKSCluster.Initializer.parameter.scope">scope</a></code> | <code>constructs.Construct</code> | *No description.* |
+| <code><a href="#cdk-skylight.compute.WindowsEKSCluster.Initializer.parameter.id">id</a></code> | <code>string</code> | *No description.* |
+| <code><a href="#cdk-skylight.compute.WindowsEKSCluster.Initializer.parameter.props">props</a></code> | <code>cdk-skylight.compute.IWindowsEKSClusterProps</code> | *No description.* |
 
 ---
 
 ##### `scope`<sup>Required</sup> <a name="scope" id="cdk-skylight.compute.WindowsEKSCluster.Initializer.parameter.scope"></a>
 
-- _Type:_ constructs.Construct
+- *Type:* constructs.Construct
 
 ---
 
 ##### `id`<sup>Required</sup> <a name="id" id="cdk-skylight.compute.WindowsEKSCluster.Initializer.parameter.id"></a>
 
-- _Type:_ string
+- *Type:* string
 
 ---
 
 ##### `props`<sup>Required</sup> <a name="props" id="cdk-skylight.compute.WindowsEKSCluster.Initializer.parameter.props"></a>
 
-- _Type:_ cdk-skylight.compute.IWindowsEKSClusterProps
+- *Type:* cdk-skylight.compute.IWindowsEKSClusterProps
 
 ---
 
 #### Methods <a name="Methods" id="Methods"></a>
 
-| **Name**                                                                             | **Description**                                    |
-| ------------------------------------------------------------------------------------ | -------------------------------------------------- |
+| **Name** | **Description** |
+| --- | --- |
 | <code><a href="#cdk-skylight.compute.WindowsEKSCluster.toString">toString</a></code> | Returns a string representation of this construct. |
 
 ---
@@ -707,8 +938,8 @@ Returns a string representation of this construct.
 
 #### Static Functions <a name="Static Functions" id="Static Functions"></a>
 
-| **Name**                                                                                   | **Description**               |
-| ------------------------------------------------------------------------------------------ | ----------------------------- |
+| **Name** | **Description** |
+| --- | --- |
 | <code><a href="#cdk-skylight.compute.WindowsEKSCluster.isConstruct">isConstruct</a></code> | Checks if `x` is a construct. |
 
 ---
@@ -725,7 +956,7 @@ Checks if `x` is a construct.
 
 ###### `x`<sup>Required</sup> <a name="x" id="cdk-skylight.compute.WindowsEKSCluster.isConstruct.parameter.x"></a>
 
-- _Type:_ any
+- *Type:* any
 
 Any object.
 
@@ -733,10 +964,10 @@ Any object.
 
 #### Properties <a name="Properties" id="Properties"></a>
 
-| **Name**                                                                                          | **Type**                                 | **Description**   |
-| ------------------------------------------------------------------------------------------------- | ---------------------------------------- | ----------------- |
-| <code><a href="#cdk-skylight.compute.WindowsEKSCluster.property.node">node</a></code>             | <code>constructs.Node</code>             | The tree node.    |
-| <code><a href="#cdk-skylight.compute.WindowsEKSCluster.property.eksCluster">eksCluster</a></code> | <code>aws-cdk-lib.aws_eks.Cluster</code> | _No description._ |
+| **Name** | **Type** | **Description** |
+| --- | --- | --- |
+| <code><a href="#cdk-skylight.compute.WindowsEKSCluster.property.node">node</a></code> | <code>constructs.Node</code> | The tree node. |
+| <code><a href="#cdk-skylight.compute.WindowsEKSCluster.property.eksCluster">eksCluster</a></code> | <code>aws-cdk-lib.aws_eks.Cluster</code> | *No description.* |
 
 ---
 
@@ -746,7 +977,7 @@ Any object.
 public readonly node: Node;
 ```
 
-- _Type:_ constructs.Node
+- *Type:* constructs.Node
 
 The tree node.
 
@@ -758,13 +989,14 @@ The tree node.
 public readonly eksCluster: Cluster;
 ```
 
-- _Type:_ aws-cdk-lib.aws_eks.Cluster
+- *Type:* aws-cdk-lib.aws_eks.Cluster
 
 ---
 
+
 ### WindowsEKSNodes <a name="WindowsEKSNodes" id="cdk-skylight.compute.WindowsEKSNodes"></a>
 
-- _Implements:_ cdk-skylight.compute.IRuntimeNodes
+- *Implements:* cdk-skylight.compute.IRuntimeNodes
 
 #### Initializers <a name="Initializers" id="cdk-skylight.compute.WindowsEKSNodes.Initializer"></a>
 
@@ -774,44 +1006,44 @@ import { compute } from 'cdk-skylight'
 new compute.WindowsEKSNodes(scope: Construct, id: string, props: IWindowsEKSNodesProps)
 ```
 
-| **Name**                                                                                           | **Type**                                                | **Description**   |
-| -------------------------------------------------------------------------------------------------- | ------------------------------------------------------- | ----------------- |
-| <code><a href="#cdk-skylight.compute.WindowsEKSNodes.Initializer.parameter.scope">scope</a></code> | <code>constructs.Construct</code>                       | _No description._ |
-| <code><a href="#cdk-skylight.compute.WindowsEKSNodes.Initializer.parameter.id">id</a></code>       | <code>string</code>                                     | _No description._ |
-| <code><a href="#cdk-skylight.compute.WindowsEKSNodes.Initializer.parameter.props">props</a></code> | <code>cdk-skylight.compute.IWindowsEKSNodesProps</code> | _No description._ |
+| **Name** | **Type** | **Description** |
+| --- | --- | --- |
+| <code><a href="#cdk-skylight.compute.WindowsEKSNodes.Initializer.parameter.scope">scope</a></code> | <code>constructs.Construct</code> | *No description.* |
+| <code><a href="#cdk-skylight.compute.WindowsEKSNodes.Initializer.parameter.id">id</a></code> | <code>string</code> | *No description.* |
+| <code><a href="#cdk-skylight.compute.WindowsEKSNodes.Initializer.parameter.props">props</a></code> | <code>cdk-skylight.compute.IWindowsEKSNodesProps</code> | *No description.* |
 
 ---
 
 ##### `scope`<sup>Required</sup> <a name="scope" id="cdk-skylight.compute.WindowsEKSNodes.Initializer.parameter.scope"></a>
 
-- _Type:_ constructs.Construct
+- *Type:* constructs.Construct
 
 ---
 
 ##### `id`<sup>Required</sup> <a name="id" id="cdk-skylight.compute.WindowsEKSNodes.Initializer.parameter.id"></a>
 
-- _Type:_ string
+- *Type:* string
 
 ---
 
 ##### `props`<sup>Required</sup> <a name="props" id="cdk-skylight.compute.WindowsEKSNodes.Initializer.parameter.props"></a>
 
-- _Type:_ cdk-skylight.compute.IWindowsEKSNodesProps
+- *Type:* cdk-skylight.compute.IWindowsEKSNodesProps
 
 ---
 
 #### Methods <a name="Methods" id="Methods"></a>
 
-| **Name**                                                                                                           | **Description**                                                                                                                                                                                                                         |
-| ------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| <code><a href="#cdk-skylight.compute.WindowsEKSNodes.toString">toString</a></code>                                 | Returns a string representation of this construct.                                                                                                                                                                                      |
-| <code><a href="#cdk-skylight.compute.WindowsEKSNodes.addAdDependency">addAdDependency</a></code>                   | Method to configure the Nodes to part of AD Domain Secret: The secrets manager secret to use must be in format: '{Domain: <domain.name>, UserID: 'Admin', Password: '<password>'}' (From cdk-skylight.AwsManagedMicrosoftAdR53 Object). |
-| <code><a href="#cdk-skylight.compute.WindowsEKSNodes.addEKSDependency">addEKSDependency</a></code>                 | Method to add the nodes to specific Cluster.                                                                                                                                                                                            |
-| <code><a href="#cdk-skylight.compute.WindowsEKSNodes.addLocalCredFile">addLocalCredFile</a></code>                 | Method to add support for LocalCredFile <Experimental>.                                                                                                                                                                                 |
-| <code><a href="#cdk-skylight.compute.WindowsEKSNodes.addStorageDependency">addStorageDependency</a></code>         | Method to configure persistent storage dependency to the hosts by using Global Mapping.                                                                                                                                                 |
-| <code><a href="#cdk-skylight.compute.WindowsEKSNodes.addUserData">addUserData</a></code>                           | Method to add userData to the nodes.                                                                                                                                                                                                    |
-| <code><a href="#cdk-skylight.compute.WindowsEKSNodes.gMSAWebHookAutoInstall">gMSAWebHookAutoInstall</a></code>     | _No description._                                                                                                                                                                                                                       |
-| <code><a href="#cdk-skylight.compute.WindowsEKSNodes.runPowerShellSSMDocument">runPowerShellSSMDocument</a></code> | _No description._                                                                                                                                                                                                                       |
+| **Name** | **Description** |
+| --- | --- |
+| <code><a href="#cdk-skylight.compute.WindowsEKSNodes.toString">toString</a></code> | Returns a string representation of this construct. |
+| <code><a href="#cdk-skylight.compute.WindowsEKSNodes.addAdDependency">addAdDependency</a></code> | Method to configure the Nodes to part of AD Domain Secret: The secrets manager secret to use must be in format: '{Domain: <domain.name>, UserID: 'Admin', Password: '<password>'}' (From cdk-skylight.AwsManagedMicrosoftAdR53 Object). |
+| <code><a href="#cdk-skylight.compute.WindowsEKSNodes.addEKSDependency">addEKSDependency</a></code> | Method to add the nodes to specific Cluster. |
+| <code><a href="#cdk-skylight.compute.WindowsEKSNodes.addLocalCredFile">addLocalCredFile</a></code> | Method to add support for LocalCredFile <Experimental>. |
+| <code><a href="#cdk-skylight.compute.WindowsEKSNodes.addStorageDependency">addStorageDependency</a></code> | Method to configure persistent storage dependency to the hosts by using Global Mapping. |
+| <code><a href="#cdk-skylight.compute.WindowsEKSNodes.addUserData">addUserData</a></code> | Method to add userData to the nodes. |
+| <code><a href="#cdk-skylight.compute.WindowsEKSNodes.gMSAWebHookAutoInstall">gMSAWebHookAutoInstall</a></code> | *No description.* |
+| <code><a href="#cdk-skylight.compute.WindowsEKSNodes.runPowerShellSSMDocument">runPowerShellSSMDocument</a></code> | *No description.* |
 
 ---
 
@@ -833,7 +1065,7 @@ Method to configure the Nodes to part of AD Domain Secret: The secrets manager s
 
 ###### `adParametersStore`<sup>Required</sup> <a name="adParametersStore" id="cdk-skylight.compute.WindowsEKSNodes.addAdDependency.parameter.adParametersStore"></a>
 
-- _Type:_ cdk-skylight.authentication.IAwsManagedMicrosoftAdParameters
+- *Type:* cdk-skylight.authentication.IAwsManagedMicrosoftAdParameters
 
 ---
 
@@ -847,7 +1079,7 @@ Method to add the nodes to specific Cluster.
 
 ###### `eksCluster`<sup>Required</sup> <a name="eksCluster" id="cdk-skylight.compute.WindowsEKSNodes.addEKSDependency.parameter.eksCluster"></a>
 
-- _Type:_ aws-cdk-lib.aws_eks.Cluster
+- *Type:* aws-cdk-lib.aws_eks.Cluster
 
 ---
 
@@ -861,19 +1093,19 @@ Method to add support for LocalCredFile <Experimental>.
 
 ###### `adParametersStore`<sup>Required</sup> <a name="adParametersStore" id="cdk-skylight.compute.WindowsEKSNodes.addLocalCredFile.parameter.adParametersStore"></a>
 
-- _Type:_ cdk-skylight.authentication.IAwsManagedMicrosoftAdParameters
+- *Type:* cdk-skylight.authentication.IAwsManagedMicrosoftAdParameters
 
 ---
 
 ###### `ADGroupName`<sup>Required</sup> <a name="ADGroupName" id="cdk-skylight.compute.WindowsEKSNodes.addLocalCredFile.parameter.ADGroupName"></a>
 
-- _Type:_ string
+- *Type:* string
 
 ---
 
 ###### `AccountName`<sup>Required</sup> <a name="AccountName" id="cdk-skylight.compute.WindowsEKSNodes.addLocalCredFile.parameter.AccountName"></a>
 
-- _Type:_ string
+- *Type:* string
 
 ---
 
@@ -887,19 +1119,19 @@ Method to configure persistent storage dependency to the hosts by using Global M
 
 ###### `adParametersStore`<sup>Required</sup> <a name="adParametersStore" id="cdk-skylight.compute.WindowsEKSNodes.addStorageDependency.parameter.adParametersStore"></a>
 
-- _Type:_ cdk-skylight.authentication.IAwsManagedMicrosoftAdParameters
+- *Type:* cdk-skylight.authentication.IAwsManagedMicrosoftAdParameters
 
 ---
 
 ###### `fsxParametersStore`<sup>Required</sup> <a name="fsxParametersStore" id="cdk-skylight.compute.WindowsEKSNodes.addStorageDependency.parameter.fsxParametersStore"></a>
 
-- _Type:_ cdk-skylight.storage.IFSxWindowsParameters
+- *Type:* cdk-skylight.storage.IFSxWindowsParameters
 
 ---
 
 ###### `folderName`<sup>Required</sup> <a name="folderName" id="cdk-skylight.compute.WindowsEKSNodes.addStorageDependency.parameter.folderName"></a>
 
-- _Type:_ string
+- *Type:* string
 
 ---
 
@@ -913,7 +1145,7 @@ Method to add userData to the nodes.
 
 ###### `commands`<sup>Required</sup> <a name="commands" id="cdk-skylight.compute.WindowsEKSNodes.addUserData.parameter.commands"></a>
 
-- _Type:_ string
+- *Type:* string
 
 ---
 
@@ -925,25 +1157,25 @@ public gMSAWebHookAutoInstall(eksCluster: Cluster, privateSignerName: string, aw
 
 ###### `eksCluster`<sup>Required</sup> <a name="eksCluster" id="cdk-skylight.compute.WindowsEKSNodes.gMSAWebHookAutoInstall.parameter.eksCluster"></a>
 
-- _Type:_ aws-cdk-lib.aws_eks.Cluster
+- *Type:* aws-cdk-lib.aws_eks.Cluster
 
 ---
 
 ###### `privateSignerName`<sup>Required</sup> <a name="privateSignerName" id="cdk-skylight.compute.WindowsEKSNodes.gMSAWebHookAutoInstall.parameter.privateSignerName"></a>
 
-- _Type:_ string
+- *Type:* string
 
 ---
 
 ###### `awsaccountid`<sup>Required</sup> <a name="awsaccountid" id="cdk-skylight.compute.WindowsEKSNodes.gMSAWebHookAutoInstall.parameter.awsaccountid"></a>
 
-- _Type:_ string
+- *Type:* string
 
 ---
 
 ###### `awsregion`<sup>Required</sup> <a name="awsregion" id="cdk-skylight.compute.WindowsEKSNodes.gMSAWebHookAutoInstall.parameter.awsregion"></a>
 
-- _Type:_ string
+- *Type:* string
 
 ---
 
@@ -955,20 +1187,20 @@ public runPowerShellSSMDocument(name: string, commands: string[]): void
 
 ###### `name`<sup>Required</sup> <a name="name" id="cdk-skylight.compute.WindowsEKSNodes.runPowerShellSSMDocument.parameter.name"></a>
 
-- _Type:_ string
+- *Type:* string
 
 ---
 
 ###### `commands`<sup>Required</sup> <a name="commands" id="cdk-skylight.compute.WindowsEKSNodes.runPowerShellSSMDocument.parameter.commands"></a>
 
-- _Type:_ string[]
+- *Type:* string[]
 
 ---
 
 #### Static Functions <a name="Static Functions" id="Static Functions"></a>
 
-| **Name**                                                                                 | **Description**               |
-| ---------------------------------------------------------------------------------------- | ----------------------------- |
+| **Name** | **Description** |
+| --- | --- |
 | <code><a href="#cdk-skylight.compute.WindowsEKSNodes.isConstruct">isConstruct</a></code> | Checks if `x` is a construct. |
 
 ---
@@ -985,7 +1217,7 @@ Checks if `x` is a construct.
 
 ###### `x`<sup>Required</sup> <a name="x" id="cdk-skylight.compute.WindowsEKSNodes.isConstruct.parameter.x"></a>
 
-- _Type:_ any
+- *Type:* any
 
 Any object.
 
@@ -993,14 +1225,14 @@ Any object.
 
 #### Properties <a name="Properties" id="Properties"></a>
 
-| **Name**                                                                                                        | **Type**                                                     | **Description**   |
-| --------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------ | ----------------- |
-| <code><a href="#cdk-skylight.compute.WindowsEKSNodes.property.node">node</a></code>                             | <code>constructs.Node</code>                                 | The tree node.    |
-| <code><a href="#cdk-skylight.compute.WindowsEKSNodes.property.asg">asg</a></code>                               | <code>aws-cdk-lib.aws_autoscaling.AutoScalingGroup</code>    | _No description._ |
-| <code><a href="#cdk-skylight.compute.WindowsEKSNodes.property.asgResource">asgResource</a></code>               | <code>aws-cdk-lib.aws_autoscaling.CfnAutoScalingGroup</code> | _No description._ |
-| <code><a href="#cdk-skylight.compute.WindowsEKSNodes.property.nodesSg">nodesSg</a></code>                       | <code>aws-cdk-lib.aws_ec2.SecurityGroup</code>               | _No description._ |
-| <code><a href="#cdk-skylight.compute.WindowsEKSNodes.property.vpc">vpc</a></code>                               | <code>aws-cdk-lib.aws_ec2.IVpc</code>                        | _No description._ |
-| <code><a href="#cdk-skylight.compute.WindowsEKSNodes.property.windowsWorkersRole">windowsWorkersRole</a></code> | <code>aws-cdk-lib.aws_iam.Role</code>                        | _No description._ |
+| **Name** | **Type** | **Description** |
+| --- | --- | --- |
+| <code><a href="#cdk-skylight.compute.WindowsEKSNodes.property.node">node</a></code> | <code>constructs.Node</code> | The tree node. |
+| <code><a href="#cdk-skylight.compute.WindowsEKSNodes.property.asg">asg</a></code> | <code>aws-cdk-lib.aws_autoscaling.AutoScalingGroup</code> | *No description.* |
+| <code><a href="#cdk-skylight.compute.WindowsEKSNodes.property.asgResource">asgResource</a></code> | <code>aws-cdk-lib.aws_autoscaling.CfnAutoScalingGroup</code> | *No description.* |
+| <code><a href="#cdk-skylight.compute.WindowsEKSNodes.property.nodesSg">nodesSg</a></code> | <code>aws-cdk-lib.aws_ec2.SecurityGroup</code> | *No description.* |
+| <code><a href="#cdk-skylight.compute.WindowsEKSNodes.property.vpc">vpc</a></code> | <code>aws-cdk-lib.aws_ec2.IVpc</code> | *No description.* |
+| <code><a href="#cdk-skylight.compute.WindowsEKSNodes.property.windowsWorkersRole">windowsWorkersRole</a></code> | <code>aws-cdk-lib.aws_iam.Role</code> | *No description.* |
 
 ---
 
@@ -1010,7 +1242,7 @@ Any object.
 public readonly node: Node;
 ```
 
-- _Type:_ constructs.Node
+- *Type:* constructs.Node
 
 The tree node.
 
@@ -1022,7 +1254,7 @@ The tree node.
 public readonly asg: AutoScalingGroup;
 ```
 
-- _Type:_ aws-cdk-lib.aws_autoscaling.AutoScalingGroup
+- *Type:* aws-cdk-lib.aws_autoscaling.AutoScalingGroup
 
 ---
 
@@ -1032,7 +1264,7 @@ public readonly asg: AutoScalingGroup;
 public readonly asgResource: CfnAutoScalingGroup;
 ```
 
-- _Type:_ aws-cdk-lib.aws_autoscaling.CfnAutoScalingGroup
+- *Type:* aws-cdk-lib.aws_autoscaling.CfnAutoScalingGroup
 
 ---
 
@@ -1042,7 +1274,7 @@ public readonly asgResource: CfnAutoScalingGroup;
 public readonly nodesSg: SecurityGroup;
 ```
 
-- _Type:_ aws-cdk-lib.aws_ec2.SecurityGroup
+- *Type:* aws-cdk-lib.aws_ec2.SecurityGroup
 
 ---
 
@@ -1052,7 +1284,7 @@ public readonly nodesSg: SecurityGroup;
 public readonly vpc: IVpc;
 ```
 
-- _Type:_ aws-cdk-lib.aws_ec2.IVpc
+- *Type:* aws-cdk-lib.aws_ec2.IVpc
 
 ---
 
@@ -1062,26 +1294,30 @@ public readonly vpc: IVpc;
 public readonly windowsWorkersRole: Role;
 ```
 
-- _Type:_ aws-cdk-lib.aws_iam.Role
+- *Type:* aws-cdk-lib.aws_iam.Role
 
 ---
+
+
+
 
 ## Protocols <a name="Protocols" id="Protocols"></a>
 
 ### IAwsManagedMicrosoftAdParameters <a name="IAwsManagedMicrosoftAdParameters" id="cdk-skylight.authentication.IAwsManagedMicrosoftAdParameters"></a>
 
-- _Implemented By:_ cdk-skylight.authentication.IAwsManagedMicrosoftAdParameters
+- *Implemented By:* cdk-skylight.authentication.IAwsManagedMicrosoftAdParameters
 
 The properties of an DomainWindowsNodeProps, requires Active Directory parameter to read the Secret to join the domain Default setting: Domain joined, m5.2xlarge, latest windows, Managed by SSM.
 
+
 #### Properties <a name="Properties" id="Properties"></a>
 
-| **Name**                                                                                                                                        | **Type**                                                                           | **Description**                                                              |
-| ----------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
-| <code><a href="#cdk-skylight.authentication.IAwsManagedMicrosoftAdParameters.property.configurationStoreType">configurationStoreType</a></code> | <code>cdk-skylight.authentication.AwsManagedMicrosoftConfigurationStoreType</code> | The name of the Configuration Store Type to use.                             |
-| <code><a href="#cdk-skylight.authentication.IAwsManagedMicrosoftAdParameters.property.directoryIDPointer">directoryIDPointer</a></code>         | <code>string</code>                                                                | The name of the SSM Object that contains the Directory ID.                   |
-| <code><a href="#cdk-skylight.authentication.IAwsManagedMicrosoftAdParameters.property.namespace">namespace</a></code>                           | <code>string</code>                                                                | The SSM namespace to read/write parameters to.                               |
-| <code><a href="#cdk-skylight.authentication.IAwsManagedMicrosoftAdParameters.property.secretPointer">secretPointer</a></code>                   | <code>string</code>                                                                | The name of the SSM Object that contains the secret name in Secrets Manager. |
+| **Name** | **Type** | **Description** |
+| --- | --- | --- |
+| <code><a href="#cdk-skylight.authentication.IAwsManagedMicrosoftAdParameters.property.configurationStoreType">configurationStoreType</a></code> | <code>cdk-skylight.authentication.AwsManagedMicrosoftConfigurationStoreType</code> | The name of the Configuration Store Type to use. |
+| <code><a href="#cdk-skylight.authentication.IAwsManagedMicrosoftAdParameters.property.directoryIDPointer">directoryIDPointer</a></code> | <code>string</code> | The name of the SSM Object that contains the Directory ID. |
+| <code><a href="#cdk-skylight.authentication.IAwsManagedMicrosoftAdParameters.property.namespace">namespace</a></code> | <code>string</code> | The SSM namespace to read/write parameters to. |
+| <code><a href="#cdk-skylight.authentication.IAwsManagedMicrosoftAdParameters.property.secretPointer">secretPointer</a></code> | <code>string</code> | The name of the SSM Object that contains the secret name in Secrets Manager. |
 
 ---
 
@@ -1091,8 +1327,8 @@ The properties of an DomainWindowsNodeProps, requires Active Directory parameter
 public readonly configurationStoreType: AwsManagedMicrosoftConfigurationStoreType;
 ```
 
-- _Type:_ cdk-skylight.authentication.AwsManagedMicrosoftConfigurationStoreType
-- _Default:_ 'AWS Systems Manager Parameter Store'.
+- *Type:* cdk-skylight.authentication.AwsManagedMicrosoftConfigurationStoreType
+- *Default:* 'AWS Systems Manager Parameter Store'.
 
 The name of the Configuration Store Type to use.
 
@@ -1104,8 +1340,8 @@ The name of the Configuration Store Type to use.
 public readonly directoryIDPointer: string;
 ```
 
-- _Type:_ string
-- _Default:_ 'directoryID'.
+- *Type:* string
+- *Default:* 'directoryID'.
 
 The name of the SSM Object that contains the Directory ID.
 
@@ -1117,8 +1353,8 @@ The name of the SSM Object that contains the Directory ID.
 public readonly namespace: string;
 ```
 
-- _Type:_ string
-- _Default:_ 'cdk-skylight'.
+- *Type:* string
+- *Default:* 'cdk-skylight'.
 
 The SSM namespace to read/write parameters to.
 
@@ -1130,8 +1366,8 @@ The SSM namespace to read/write parameters to.
 public readonly secretPointer: string;
 ```
 
-- _Type:_ string
-- _Default:_ 'domain-secret'.
+- *Type:* string
+- *Default:* 'domain-secret'.
 
 The name of the SSM Object that contains the secret name in Secrets Manager.
 
@@ -1139,22 +1375,23 @@ The name of the SSM Object that contains the secret name in Secrets Manager.
 
 ### IAwsManagedMicrosoftAdProps <a name="IAwsManagedMicrosoftAdProps" id="cdk-skylight.authentication.IAwsManagedMicrosoftAdProps"></a>
 
-- _Implemented By:_ cdk-skylight.authentication.IAwsManagedMicrosoftAdProps
+- *Implemented By:* cdk-skylight.authentication.IAwsManagedMicrosoftAdProps
 
-The properties for the AwsManagedMicrosoftAdR53 class.
+The properties for the AwsManagedMicrosoftAd class.
+
 
 #### Properties <a name="Properties" id="Properties"></a>
 
-| **Name**                                                                                                                           | **Type**                                                                  | **Description**                                                                                                          |
-| ---------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
-| <code><a href="#cdk-skylight.authentication.IAwsManagedMicrosoftAdProps.property.vpc">vpc</a></code>                               | <code>aws-cdk-lib.aws_ec2.IVpc</code>                                     | The VPC to use, must have private subnets.                                                                               |
-| <code><a href="#cdk-skylight.authentication.IAwsManagedMicrosoftAdProps.property.configurationStore">configurationStore</a></code> | <code>cdk-skylight.authentication.IAwsManagedMicrosoftAdParameters</code> | The configuration store to save the directory parameters (After deployed).                                               |
-| <code><a href="#cdk-skylight.authentication.IAwsManagedMicrosoftAdProps.property.createWorker">createWorker</a></code>             | <code>boolean</code>                                                      | Create Domain joined machine to be used to run Powershell commands to that directory.                                    |
-| <code><a href="#cdk-skylight.authentication.IAwsManagedMicrosoftAdProps.property.domainName">domainName</a></code>                 | <code>string</code>                                                       | The domain name for the Active Directory Domain.                                                                         |
-| <code><a href="#cdk-skylight.authentication.IAwsManagedMicrosoftAdProps.property.edition">edition</a></code>                       | <code>string</code>                                                       | The edition to use for the Active Directory Domain.                                                                      |
-| <code><a href="#cdk-skylight.authentication.IAwsManagedMicrosoftAdProps.property.secret">secret</a></code>                         | <code>aws-cdk-lib.aws_secretsmanager.ISecret</code>                       | The secrets manager secret to use must be in format: '{Domain: <domain.name>, UserID: 'Admin', Password: '<password>'}'. |
-| <code><a href="#cdk-skylight.authentication.IAwsManagedMicrosoftAdProps.property.secretName">secretName</a></code>                 | <code>string</code>                                                       | The secret name to save the Domain Admin object.                                                                         |
-| <code><a href="#cdk-skylight.authentication.IAwsManagedMicrosoftAdProps.property.vpcSubnets">vpcSubnets</a></code>                 | <code>aws-cdk-lib.aws_ec2.SelectedSubnets</code>                          | VPC subnet selection, subnets must be private and exactly 2.                                                             |
+| **Name** | **Type** | **Description** |
+| --- | --- | --- |
+| <code><a href="#cdk-skylight.authentication.IAwsManagedMicrosoftAdProps.property.vpc">vpc</a></code> | <code>aws-cdk-lib.aws_ec2.IVpc</code> | The VPC to use, must have private subnets. |
+| <code><a href="#cdk-skylight.authentication.IAwsManagedMicrosoftAdProps.property.configurationStore">configurationStore</a></code> | <code>cdk-skylight.authentication.IAwsManagedMicrosoftAdParameters</code> | The configuration store to save the directory parameters (After deployed). |
+| <code><a href="#cdk-skylight.authentication.IAwsManagedMicrosoftAdProps.property.createWorker">createWorker</a></code> | <code>boolean</code> | Create Domain joined machine to be used to run Powershell commands to that directory. |
+| <code><a href="#cdk-skylight.authentication.IAwsManagedMicrosoftAdProps.property.domainName">domainName</a></code> | <code>string</code> | The domain name for the Active Directory Domain. |
+| <code><a href="#cdk-skylight.authentication.IAwsManagedMicrosoftAdProps.property.edition">edition</a></code> | <code>string</code> | The edition to use for the Active Directory Domain. |
+| <code><a href="#cdk-skylight.authentication.IAwsManagedMicrosoftAdProps.property.secret">secret</a></code> | <code>aws-cdk-lib.aws_secretsmanager.ISecret</code> | The secrets manager secret to use must be in format: '{Domain: <domain.name>, UserID: 'Admin', Password: '<password>'}'. |
+| <code><a href="#cdk-skylight.authentication.IAwsManagedMicrosoftAdProps.property.secretName">secretName</a></code> | <code>string</code> | The secret name to save the Domain Admin object. |
+| <code><a href="#cdk-skylight.authentication.IAwsManagedMicrosoftAdProps.property.vpcSubnets">vpcSubnets</a></code> | <code>aws-cdk-lib.aws_ec2.SelectedSubnets</code> | VPC subnet selection, subnets must be private and exactly 2. |
 
 ---
 
@@ -1164,7 +1401,7 @@ The properties for the AwsManagedMicrosoftAdR53 class.
 public readonly vpc: IVpc;
 ```
 
-- _Type:_ aws-cdk-lib.aws_ec2.IVpc
+- *Type:* aws-cdk-lib.aws_ec2.IVpc
 
 The VPC to use, must have private subnets.
 
@@ -1176,7 +1413,7 @@ The VPC to use, must have private subnets.
 public readonly configurationStore: IAwsManagedMicrosoftAdParameters;
 ```
 
-- _Type:_ cdk-skylight.authentication.IAwsManagedMicrosoftAdParameters
+- *Type:* cdk-skylight.authentication.IAwsManagedMicrosoftAdParameters
 
 The configuration store to save the directory parameters (After deployed).
 
@@ -1188,8 +1425,8 @@ The configuration store to save the directory parameters (After deployed).
 public readonly createWorker: boolean;
 ```
 
-- _Type:_ boolean
-- _Default:_ 'true'.
+- *Type:* boolean
+- *Default:* 'true'.
 
 Create Domain joined machine to be used to run Powershell commands to that directory.
 
@@ -1203,8 +1440,8 @@ Create Domain joined machine to be used to run Powershell commands to that direc
 public readonly domainName: string;
 ```
 
-- _Type:_ string
-- _Default:_ 'domain.aws'.
+- *Type:* string
+- *Default:* 'domain.aws'.
 
 The domain name for the Active Directory Domain.
 
@@ -1216,8 +1453,8 @@ The domain name for the Active Directory Domain.
 public readonly edition: string;
 ```
 
-- _Type:_ string
-- _Default:_ 'Standard'.
+- *Type:* string
+- *Default:* 'Standard'.
 
 The edition to use for the Active Directory Domain.
 
@@ -1232,8 +1469,8 @@ https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-dire
 public readonly secret: ISecret;
 ```
 
-- _Type:_ aws-cdk-lib.aws_secretsmanager.ISecret
-- _Default:_ 'Randomly generated and stored in Secret Manager'.
+- *Type:* aws-cdk-lib.aws_secretsmanager.ISecret
+- *Default:* 'Randomly generated and stored in Secret Manager'.
 
 The secrets manager secret to use must be in format: '{Domain: <domain.name>, UserID: 'Admin', Password: '<password>'}'.
 
@@ -1245,8 +1482,8 @@ The secrets manager secret to use must be in format: '{Domain: <domain.name>, Us
 public readonly secretName: string;
 ```
 
-- _Type:_ string
-- _Default:_ '<domain.name>-secret'.
+- *Type:* string
+- *Default:* '<domain.name>-secret'.
 
 The secret name to save the Domain Admin object.
 
@@ -1258,7 +1495,7 @@ The secret name to save the Domain Admin object.
 public readonly vpcSubnets: SelectedSubnets;
 ```
 
-- _Type:_ aws-cdk-lib.aws_ec2.SelectedSubnets
+- *Type:* aws-cdk-lib.aws_ec2.SelectedSubnets
 
 VPC subnet selection, subnets must be private and exactly 2.
 
@@ -1266,23 +1503,24 @@ VPC subnet selection, subnets must be private and exactly 2.
 
 ### IDomainWindowsNodeProps <a name="IDomainWindowsNodeProps" id="cdk-skylight.compute.IDomainWindowsNodeProps"></a>
 
-- _Implemented By:_ cdk-skylight.compute.IDomainWindowsNodeProps
+- *Implemented By:* cdk-skylight.compute.IDomainWindowsNodeProps
 
 The properties of an DomainWindowsNodeProps, requires Active Directory parameter to read the Secret to join the domain Default setting: Domain joined, m5.2xlarge, latest windows, Managed by SSM.
 
+
 #### Properties <a name="Properties" id="Properties"></a>
 
-| **Name**                                                                                                                        | **Type**                                            | **Description**                                                                                                                   |
-| ------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
-| <code><a href="#cdk-skylight.compute.IDomainWindowsNodeProps.property.vpc">vpc</a></code>                                       | <code>aws-cdk-lib.aws_ec2.IVpc</code>               | The VPC to use.                                                                                                                   |
-| <code><a href="#cdk-skylight.compute.IDomainWindowsNodeProps.property.amiName">amiName</a></code>                               | <code>string</code>                                 | The name of the AMI to search in SSM (ec2.LookupNodeImage) supports Regex.                                                        |
-| <code><a href="#cdk-skylight.compute.IDomainWindowsNodeProps.property.domainName">domainName</a></code>                         | <code>string</code>                                 | _No description._                                                                                                                 |
-| <code><a href="#cdk-skylight.compute.IDomainWindowsNodeProps.property.iamManagedPoliciesList">iamManagedPoliciesList</a></code> | <code>aws-cdk-lib.aws_iam.IManagedPolicy[]</code>   | IAM Instance role permissions.                                                                                                    |
-| <code><a href="#cdk-skylight.compute.IDomainWindowsNodeProps.property.instanceType">instanceType</a></code>                     | <code>string</code>                                 | The EC2 Instance type to use.                                                                                                     |
-| <code><a href="#cdk-skylight.compute.IDomainWindowsNodeProps.property.passwordObject">passwordObject</a></code>                 | <code>aws-cdk-lib.aws_secretsmanager.ISecret</code> | _No description._                                                                                                                 |
-| <code><a href="#cdk-skylight.compute.IDomainWindowsNodeProps.property.usePrivateSubnet">usePrivateSubnet</a></code>             | <code>boolean</code>                                | Choose if to launch the instance in Private or in Public subnet Private = Subnet that routes to the internet, but not vice versa. |
-| <code><a href="#cdk-skylight.compute.IDomainWindowsNodeProps.property.userData">userData</a></code>                             | <code>string</code>                                 | Specific UserData to use.                                                                                                         |
-| <code><a href="#cdk-skylight.compute.IDomainWindowsNodeProps.property.windowsMachine">windowsMachine</a></code>                 | <code>boolean</code>                                | _No description._                                                                                                                 |
+| **Name** | **Type** | **Description** |
+| --- | --- | --- |
+| <code><a href="#cdk-skylight.compute.IDomainWindowsNodeProps.property.vpc">vpc</a></code> | <code>aws-cdk-lib.aws_ec2.IVpc</code> | The VPC to use. |
+| <code><a href="#cdk-skylight.compute.IDomainWindowsNodeProps.property.amiName">amiName</a></code> | <code>string</code> | The name of the AMI to search in SSM (ec2.LookupNodeImage) supports Regex. |
+| <code><a href="#cdk-skylight.compute.IDomainWindowsNodeProps.property.domainName">domainName</a></code> | <code>string</code> | *No description.* |
+| <code><a href="#cdk-skylight.compute.IDomainWindowsNodeProps.property.iamManagedPoliciesList">iamManagedPoliciesList</a></code> | <code>aws-cdk-lib.aws_iam.IManagedPolicy[]</code> | IAM Instance role permissions. |
+| <code><a href="#cdk-skylight.compute.IDomainWindowsNodeProps.property.instanceType">instanceType</a></code> | <code>string</code> | The EC2 Instance type to use. |
+| <code><a href="#cdk-skylight.compute.IDomainWindowsNodeProps.property.passwordObject">passwordObject</a></code> | <code>aws-cdk-lib.aws_secretsmanager.ISecret</code> | *No description.* |
+| <code><a href="#cdk-skylight.compute.IDomainWindowsNodeProps.property.usePrivateSubnet">usePrivateSubnet</a></code> | <code>boolean</code> | Choose if to launch the instance in Private or in Public subnet Private = Subnet that routes to the internet, but not vice versa. |
+| <code><a href="#cdk-skylight.compute.IDomainWindowsNodeProps.property.userData">userData</a></code> | <code>string</code> | Specific UserData to use. |
+| <code><a href="#cdk-skylight.compute.IDomainWindowsNodeProps.property.windowsMachine">windowsMachine</a></code> | <code>boolean</code> | *No description.* |
 
 ---
 
@@ -1292,7 +1530,7 @@ The properties of an DomainWindowsNodeProps, requires Active Directory parameter
 public readonly vpc: IVpc;
 ```
 
-- _Type:_ aws-cdk-lib.aws_ec2.IVpc
+- *Type:* aws-cdk-lib.aws_ec2.IVpc
 
 The VPC to use.
 
@@ -1304,8 +1542,8 @@ The VPC to use.
 public readonly amiName: string;
 ```
 
-- _Type:_ string
-- _Default:_ 'Windows_Server-2022-English-Full'
+- *Type:* string
+- *Default:* 'Windows_Server-2022-English-Full'
 
 The name of the AMI to search in SSM (ec2.LookupNodeImage) supports Regex.
 
@@ -1317,7 +1555,7 @@ The name of the AMI to search in SSM (ec2.LookupNodeImage) supports Regex.
 public readonly domainName: string;
 ```
 
-- _Type:_ string
+- *Type:* string
 
 ---
 
@@ -1327,8 +1565,8 @@ public readonly domainName: string;
 public readonly iamManagedPoliciesList: IManagedPolicy[];
 ```
 
-- _Type:_ aws-cdk-lib.aws_iam.IManagedPolicy[]
-- _Default:_ 'AmazonSSMManagedInstanceCore, AmazonSSMDirectoryServiceAccess'.
+- *Type:* aws-cdk-lib.aws_iam.IManagedPolicy[]
+- *Default:* 'AmazonSSMManagedInstanceCore, AmazonSSMDirectoryServiceAccess'.
 
 IAM Instance role permissions.
 
@@ -1340,8 +1578,8 @@ IAM Instance role permissions.
 public readonly instanceType: string;
 ```
 
-- _Type:_ string
-- _Default:_ 'm5.2xlarge'.
+- *Type:* string
+- *Default:* 'm5.2xlarge'.
 
 The EC2 Instance type to use.
 
@@ -1353,7 +1591,7 @@ The EC2 Instance type to use.
 public readonly passwordObject: ISecret;
 ```
 
-- _Type:_ aws-cdk-lib.aws_secretsmanager.ISecret
+- *Type:* aws-cdk-lib.aws_secretsmanager.ISecret
 
 ---
 
@@ -1363,8 +1601,8 @@ public readonly passwordObject: ISecret;
 public readonly usePrivateSubnet: boolean;
 ```
 
-- _Type:_ boolean
-- _Default:_ Private.
+- *Type:* boolean
+- *Default:* Private.
 
 Choose if to launch the instance in Private or in Public subnet Private = Subnet that routes to the internet, but not vice versa.
 
@@ -1378,8 +1616,8 @@ Public = Subnet that routes to the internet and vice versa.
 public readonly userData: string;
 ```
 
-- _Type:_ string
-- _Default:_ 'undefined'
+- *Type:* string
+- *Default:* 'undefined'
 
 Specific UserData to use.
 
@@ -1393,21 +1631,22 @@ The UserData may still be mutated after creation.
 public readonly windowsMachine: boolean;
 ```
 
-- _Type:_ boolean
-- _Default:_ 'true'
+- *Type:* boolean
+- *Default:* 'true'
 
 ---
 
 ### IFSxWindowsParameters <a name="IFSxWindowsParameters" id="cdk-skylight.storage.IFSxWindowsParameters"></a>
 
-- _Implemented By:_ cdk-skylight.storage.IFSxWindowsParameters
+- *Implemented By:* cdk-skylight.storage.IFSxWindowsParameters
+
 
 #### Properties <a name="Properties" id="Properties"></a>
 
-| **Name**                                                                                                | **Type**            | **Description**                                                 |
-| ------------------------------------------------------------------------------------------------------- | ------------------- | --------------------------------------------------------------- |
+| **Name** | **Type** | **Description** |
+| --- | --- | --- |
 | <code><a href="#cdk-skylight.storage.IFSxWindowsParameters.property.dnsEndpoint">dnsEndpoint</a></code> | <code>string</code> | The name of the parameter to save the FSxEndpoint DNS Endpoint. |
-| <code><a href="#cdk-skylight.storage.IFSxWindowsParameters.property.namespace">namespace</a></code>     | <code>string</code> | The SSM namespace to read/write parameters to.                  |
+| <code><a href="#cdk-skylight.storage.IFSxWindowsParameters.property.namespace">namespace</a></code> | <code>string</code> | The SSM namespace to read/write parameters to. |
 
 ---
 
@@ -1417,8 +1656,8 @@ public readonly windowsMachine: boolean;
 public readonly dnsEndpoint: string;
 ```
 
-- _Type:_ string
-- _Default:_ 'FSxEndpoint-DNS'.
+- *Type:* string
+- *Default:* 'FSxEndpoint-DNS'.
 
 The name of the parameter to save the FSxEndpoint DNS Endpoint.
 
@@ -1430,8 +1669,8 @@ The name of the parameter to save the FSxEndpoint DNS Endpoint.
 public readonly namespace: string;
 ```
 
-- _Type:_ string
-- _Default:_ 'cdk-skylight'.
+- *Type:* string
+- *Default:* 'cdk-skylight'.
 
 The SSM namespace to read/write parameters to.
 
@@ -1439,21 +1678,22 @@ The SSM namespace to read/write parameters to.
 
 ### IFSxWindowsProps <a name="IFSxWindowsProps" id="cdk-skylight.storage.IFSxWindowsProps"></a>
 
-- _Implemented By:_ cdk-skylight.storage.IFSxWindowsProps
+- *Implemented By:* cdk-skylight.storage.IFSxWindowsProps
 
 The properties for the PersistentStorage class.
 
+
 #### Properties <a name="Properties" id="Properties"></a>
 
-| **Name**                                                                                                                       | **Type**                                                | **Description**                                                                                                                                               |
-| ------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| <code><a href="#cdk-skylight.storage.IFSxWindowsProps.property.directoryId">directoryId</a></code>                             | <code>string</code>                                     | _No description._                                                                                                                                             |
-| <code><a href="#cdk-skylight.storage.IFSxWindowsProps.property.vpc">vpc</a></code>                                             | <code>aws-cdk-lib.aws_ec2.IVpc</code>                   | The VPC to use, must have private subnets.                                                                                                                    |
-| <code><a href="#cdk-skylight.storage.IFSxWindowsProps.property.fileSystemInPrivateSubnet">fileSystemInPrivateSubnet</a></code> | <code>boolean</code>                                    | Deploy the Amazon FSx file system in private subnet or public subnet See: https://docs.aws.amazon.com/fsx/latest/WindowsGuide/high-availability-multiAZ.html. |
-| <code><a href="#cdk-skylight.storage.IFSxWindowsProps.property.fileSystemSize">fileSystemSize</a></code>                       | <code>number</code>                                     | The Filesystem size in GB.                                                                                                                                    |
-| <code><a href="#cdk-skylight.storage.IFSxWindowsProps.property.multiAZ">multiAZ</a></code>                                     | <code>boolean</code>                                    | Choosing Single-AZ or Multi-AZ file system deployment See: https://docs.aws.amazon.com/fsx/latest/WindowsGuide/high-availability-multiAZ.html.                |
-| <code><a href="#cdk-skylight.storage.IFSxWindowsProps.property.ssmParameters">ssmParameters</a></code>                         | <code>cdk-skylight.storage.IFSxWindowsParameters</code> | _No description._                                                                                                                                             |
-| <code><a href="#cdk-skylight.storage.IFSxWindowsProps.property.throughputMbps">throughputMbps</a></code>                       | <code>number</code>                                     | The Filesystem throughput in MBps.                                                                                                                            |
+| **Name** | **Type** | **Description** |
+| --- | --- | --- |
+| <code><a href="#cdk-skylight.storage.IFSxWindowsProps.property.directoryId">directoryId</a></code> | <code>string</code> | *No description.* |
+| <code><a href="#cdk-skylight.storage.IFSxWindowsProps.property.vpc">vpc</a></code> | <code>aws-cdk-lib.aws_ec2.IVpc</code> | The VPC to use, must have private subnets. |
+| <code><a href="#cdk-skylight.storage.IFSxWindowsProps.property.fileSystemInPrivateSubnet">fileSystemInPrivateSubnet</a></code> | <code>boolean</code> | Deploy the Amazon FSx file system in private subnet or public subnet See: https://docs.aws.amazon.com/fsx/latest/WindowsGuide/high-availability-multiAZ.html. |
+| <code><a href="#cdk-skylight.storage.IFSxWindowsProps.property.fileSystemSize">fileSystemSize</a></code> | <code>number</code> | The Filesystem size in GB. |
+| <code><a href="#cdk-skylight.storage.IFSxWindowsProps.property.multiAZ">multiAZ</a></code> | <code>boolean</code> | Choosing Single-AZ or Multi-AZ file system deployment See: https://docs.aws.amazon.com/fsx/latest/WindowsGuide/high-availability-multiAZ.html. |
+| <code><a href="#cdk-skylight.storage.IFSxWindowsProps.property.ssmParameters">ssmParameters</a></code> | <code>cdk-skylight.storage.IFSxWindowsParameters</code> | *No description.* |
+| <code><a href="#cdk-skylight.storage.IFSxWindowsProps.property.throughputMbps">throughputMbps</a></code> | <code>number</code> | The Filesystem throughput in MBps. |
 
 ---
 
@@ -1463,7 +1703,7 @@ The properties for the PersistentStorage class.
 public readonly directoryId: string;
 ```
 
-- _Type:_ string
+- *Type:* string
 
 ---
 
@@ -1473,7 +1713,7 @@ public readonly directoryId: string;
 public readonly vpc: IVpc;
 ```
 
-- _Type:_ aws-cdk-lib.aws_ec2.IVpc
+- *Type:* aws-cdk-lib.aws_ec2.IVpc
 
 The VPC to use, must have private subnets.
 
@@ -1485,8 +1725,8 @@ The VPC to use, must have private subnets.
 public readonly fileSystemInPrivateSubnet: boolean;
 ```
 
-- _Type:_ boolean
-- _Default:_ true.
+- *Type:* boolean
+- *Default:* true.
 
 Deploy the Amazon FSx file system in private subnet or public subnet See: https://docs.aws.amazon.com/fsx/latest/WindowsGuide/high-availability-multiAZ.html.
 
@@ -1498,8 +1738,8 @@ Deploy the Amazon FSx file system in private subnet or public subnet See: https:
 public readonly fileSystemSize: number;
 ```
 
-- _Type:_ number
-- _Default:_ 200.
+- *Type:* number
+- *Default:* 200.
 
 The Filesystem size in GB.
 
@@ -1511,8 +1751,8 @@ The Filesystem size in GB.
 public readonly multiAZ: boolean;
 ```
 
-- _Type:_ boolean
-- _Default:_ true.
+- *Type:* boolean
+- *Default:* true.
 
 Choosing Single-AZ or Multi-AZ file system deployment See: https://docs.aws.amazon.com/fsx/latest/WindowsGuide/high-availability-multiAZ.html.
 
@@ -1524,7 +1764,7 @@ Choosing Single-AZ or Multi-AZ file system deployment See: https://docs.aws.amaz
 public readonly ssmParameters: IFSxWindowsParameters;
 ```
 
-- _Type:_ cdk-skylight.storage.IFSxWindowsParameters
+- *Type:* cdk-skylight.storage.IFSxWindowsParameters
 
 ---
 
@@ -1534,8 +1774,8 @@ public readonly ssmParameters: IFSxWindowsParameters;
 public readonly throughputMbps: number;
 ```
 
-- _Type:_ number
-- _Default:_ 128.
+- *Type:* number
+- *Default:* 128.
 
 The Filesystem throughput in MBps.
 
@@ -1543,17 +1783,17 @@ The Filesystem throughput in MBps.
 
 ### IRuntimeNodes <a name="IRuntimeNodes" id="cdk-skylight.compute.IRuntimeNodes"></a>
 
-- _Implemented By:_ cdk-skylight.compute.WindowsEKSNodes, cdk-skylight.compute.IRuntimeNodes
+- *Implemented By:* cdk-skylight.compute.WindowsEKSNodes, cdk-skylight.compute.IRuntimeNodes
 
 #### Methods <a name="Methods" id="Methods"></a>
 
-| **Name**                                                                                                 | **Description**                                                                                                                                                                                                                         |
-| -------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| <code><a href="#cdk-skylight.compute.IRuntimeNodes.addAdDependency">addAdDependency</a></code>           | Method to configure the Nodes to part of AD Domain Secret: The secrets manager secret to use must be in format: '{Domain: <domain.name>, UserID: 'Admin', Password: '<password>'}' (From cdk-skylight.AwsManagedMicrosoftAdR53 Object). |
-| <code><a href="#cdk-skylight.compute.IRuntimeNodes.addEKSDependency">addEKSDependency</a></code>         | Method to add the nodes to specific Cluster.                                                                                                                                                                                            |
-| <code><a href="#cdk-skylight.compute.IRuntimeNodes.addLocalCredFile">addLocalCredFile</a></code>         | Method to add support for LocalCredFile <Experimental>.                                                                                                                                                                                 |
-| <code><a href="#cdk-skylight.compute.IRuntimeNodes.addStorageDependency">addStorageDependency</a></code> | Method to configure persistent storage dependency to the hosts by using Global Mapping.                                                                                                                                                 |
-| <code><a href="#cdk-skylight.compute.IRuntimeNodes.addUserData">addUserData</a></code>                   | Method to add userData to the nodes.                                                                                                                                                                                                    |
+| **Name** | **Description** |
+| --- | --- |
+| <code><a href="#cdk-skylight.compute.IRuntimeNodes.addAdDependency">addAdDependency</a></code> | Method to configure the Nodes to part of AD Domain Secret: The secrets manager secret to use must be in format: '{Domain: <domain.name>, UserID: 'Admin', Password: '<password>'}' (From cdk-skylight.AwsManagedMicrosoftAdR53 Object). |
+| <code><a href="#cdk-skylight.compute.IRuntimeNodes.addEKSDependency">addEKSDependency</a></code> | Method to add the nodes to specific Cluster. |
+| <code><a href="#cdk-skylight.compute.IRuntimeNodes.addLocalCredFile">addLocalCredFile</a></code> | Method to add support for LocalCredFile <Experimental>. |
+| <code><a href="#cdk-skylight.compute.IRuntimeNodes.addStorageDependency">addStorageDependency</a></code> | Method to configure persistent storage dependency to the hosts by using Global Mapping. |
+| <code><a href="#cdk-skylight.compute.IRuntimeNodes.addUserData">addUserData</a></code> | Method to add userData to the nodes. |
 
 ---
 
@@ -1567,7 +1807,7 @@ Method to configure the Nodes to part of AD Domain Secret: The secrets manager s
 
 ###### `adParametersStore`<sup>Required</sup> <a name="adParametersStore" id="cdk-skylight.compute.IRuntimeNodes.addAdDependency.parameter.adParametersStore"></a>
 
-- _Type:_ cdk-skylight.authentication.IAwsManagedMicrosoftAdParameters
+- *Type:* cdk-skylight.authentication.IAwsManagedMicrosoftAdParameters
 
 ---
 
@@ -1581,7 +1821,7 @@ Method to add the nodes to specific Cluster.
 
 ###### `eksCluster`<sup>Required</sup> <a name="eksCluster" id="cdk-skylight.compute.IRuntimeNodes.addEKSDependency.parameter.eksCluster"></a>
 
-- _Type:_ aws-cdk-lib.aws_eks.Cluster
+- *Type:* aws-cdk-lib.aws_eks.Cluster
 
 ---
 
@@ -1595,19 +1835,19 @@ Method to add support for LocalCredFile <Experimental>.
 
 ###### `adParametersStore`<sup>Required</sup> <a name="adParametersStore" id="cdk-skylight.compute.IRuntimeNodes.addLocalCredFile.parameter.adParametersStore"></a>
 
-- _Type:_ cdk-skylight.authentication.IAwsManagedMicrosoftAdParameters
+- *Type:* cdk-skylight.authentication.IAwsManagedMicrosoftAdParameters
 
 ---
 
 ###### `ADGroupName`<sup>Required</sup> <a name="ADGroupName" id="cdk-skylight.compute.IRuntimeNodes.addLocalCredFile.parameter.ADGroupName"></a>
 
-- _Type:_ string
+- *Type:* string
 
 ---
 
 ###### `AccountName`<sup>Required</sup> <a name="AccountName" id="cdk-skylight.compute.IRuntimeNodes.addLocalCredFile.parameter.AccountName"></a>
 
-- _Type:_ string
+- *Type:* string
 
 ---
 
@@ -1621,19 +1861,19 @@ Method to configure persistent storage dependency to the hosts by using Global M
 
 ###### `adParametersStore`<sup>Required</sup> <a name="adParametersStore" id="cdk-skylight.compute.IRuntimeNodes.addStorageDependency.parameter.adParametersStore"></a>
 
-- _Type:_ cdk-skylight.authentication.IAwsManagedMicrosoftAdParameters
+- *Type:* cdk-skylight.authentication.IAwsManagedMicrosoftAdParameters
 
 ---
 
 ###### `fsxParametersStore`<sup>Required</sup> <a name="fsxParametersStore" id="cdk-skylight.compute.IRuntimeNodes.addStorageDependency.parameter.fsxParametersStore"></a>
 
-- _Type:_ cdk-skylight.storage.IFSxWindowsParameters
+- *Type:* cdk-skylight.storage.IFSxWindowsParameters
 
 ---
 
 ###### `folderName`<sup>Required</sup> <a name="folderName" id="cdk-skylight.compute.IRuntimeNodes.addStorageDependency.parameter.folderName"></a>
 
-- _Type:_ string
+- *Type:* string
 
 ---
 
@@ -1647,20 +1887,22 @@ Method to add userData to the nodes.
 
 ###### `commands`<sup>Required</sup> <a name="commands" id="cdk-skylight.compute.IRuntimeNodes.addUserData.parameter.commands"></a>
 
-- _Type:_ string
+- *Type:* string
 
 ---
 
+
 ### IWindowsEKSClusterParameters <a name="IWindowsEKSClusterParameters" id="cdk-skylight.compute.IWindowsEKSClusterParameters"></a>
 
-- _Implemented By:_ cdk-skylight.compute.IWindowsEKSClusterParameters
+- *Implemented By:* cdk-skylight.compute.IWindowsEKSClusterParameters
+
 
 #### Properties <a name="Properties" id="Properties"></a>
 
-| **Name**                                                                                                                     | **Type**            | **Description**                                                |
-| ---------------------------------------------------------------------------------------------------------------------------- | ------------------- | -------------------------------------------------------------- |
+| **Name** | **Type** | **Description** |
+| --- | --- | --- |
 | <code><a href="#cdk-skylight.compute.IWindowsEKSClusterParameters.property.clusterNamePointer">clusterNamePointer</a></code> | <code>string</code> | The name of the SSM Object that contains the EKS Cluster name. |
-| <code><a href="#cdk-skylight.compute.IWindowsEKSClusterParameters.property.namespace">namespace</a></code>                   | <code>string</code> | The SSM namespace to read/write parameters to.                 |
+| <code><a href="#cdk-skylight.compute.IWindowsEKSClusterParameters.property.namespace">namespace</a></code> | <code>string</code> | The SSM namespace to read/write parameters to. |
 
 ---
 
@@ -1670,8 +1912,8 @@ Method to add userData to the nodes.
 public readonly clusterNamePointer: string;
 ```
 
-- _Type:_ string
-- _Default:_ 'windows-eks-cluster-name'.
+- *Type:* string
+- *Default:* 'windows-eks-cluster-name'.
 
 The name of the SSM Object that contains the EKS Cluster name.
 
@@ -1683,8 +1925,8 @@ The name of the SSM Object that contains the EKS Cluster name.
 public readonly namespace: string;
 ```
 
-- _Type:_ string
-- _Default:_ 'cdk-skylight/compute/eks'.
+- *Type:* string
+- *Default:* 'cdk-skylight/compute/eks'.
 
 The SSM namespace to read/write parameters to.
 
@@ -1692,13 +1934,14 @@ The SSM namespace to read/write parameters to.
 
 ### IWindowsEKSClusterProps <a name="IWindowsEKSClusterProps" id="cdk-skylight.compute.IWindowsEKSClusterProps"></a>
 
-- _Implemented By:_ cdk-skylight.compute.IWindowsEKSClusterProps
+- *Implemented By:* cdk-skylight.compute.IWindowsEKSClusterProps
+
 
 #### Properties <a name="Properties" id="Properties"></a>
 
-| **Name**                                                                                                            | **Type**                                                       | **Description**                     |
-| ------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------- | ----------------------------------- |
-| <code><a href="#cdk-skylight.compute.IWindowsEKSClusterProps.property.vpc">vpc</a></code>                           | <code>aws-cdk-lib.aws_ec2.IVpc</code>                          | _No description._                   |
+| **Name** | **Type** | **Description** |
+| --- | --- | --- |
+| <code><a href="#cdk-skylight.compute.IWindowsEKSClusterProps.property.vpc">vpc</a></code> | <code>aws-cdk-lib.aws_ec2.IVpc</code> | *No description.* |
 | <code><a href="#cdk-skylight.compute.IWindowsEKSClusterProps.property.eksSsmParameters">eksSsmParameters</a></code> | <code>cdk-skylight.compute.IWindowsEKSClusterParameters</code> | The Windows EKS Cluster parameters. |
 
 ---
@@ -1709,7 +1952,7 @@ The SSM namespace to read/write parameters to.
 public readonly vpc: IVpc;
 ```
 
-- _Type:_ aws-cdk-lib.aws_ec2.IVpc
+- *Type:* aws-cdk-lib.aws_ec2.IVpc
 
 ---
 
@@ -1719,8 +1962,8 @@ public readonly vpc: IVpc;
 public readonly eksSsmParameters: IWindowsEKSClusterParameters;
 ```
 
-- _Type:_ cdk-skylight.compute.IWindowsEKSClusterParameters
-- _Default:_ 'No default'.
+- *Type:* cdk-skylight.compute.IWindowsEKSClusterParameters
+- *Default:* 'No default'.
 
 The Windows EKS Cluster parameters.
 
@@ -1728,15 +1971,16 @@ The Windows EKS Cluster parameters.
 
 ### IWindowsEKSNodesProps <a name="IWindowsEKSNodesProps" id="cdk-skylight.compute.IWindowsEKSNodesProps"></a>
 
-- _Implemented By:_ cdk-skylight.compute.IWindowsEKSNodesProps
+- *Implemented By:* cdk-skylight.compute.IWindowsEKSNodesProps
+
 
 #### Properties <a name="Properties" id="Properties"></a>
 
-| **Name**                                                                                                  | **Type**                                      | **Description**                          |
-| --------------------------------------------------------------------------------------------------------- | --------------------------------------------- | ---------------------------------------- |
-| <code><a href="#cdk-skylight.compute.IWindowsEKSNodesProps.property.vpc">vpc</a></code>                   | <code>aws-cdk-lib.aws_ec2.IVpc</code>         | _No description._                        |
-| <code><a href="#cdk-skylight.compute.IWindowsEKSNodesProps.property.instanceType">instanceType</a></code> | <code>aws-cdk-lib.aws_ec2.InstanceType</code> | The instance to use.                     |
-| <code><a href="#cdk-skylight.compute.IWindowsEKSNodesProps.property.namespace">namespace</a></code>       | <code>string</code>                           | The SSM namespace to save parameters to. |
+| **Name** | **Type** | **Description** |
+| --- | --- | --- |
+| <code><a href="#cdk-skylight.compute.IWindowsEKSNodesProps.property.vpc">vpc</a></code> | <code>aws-cdk-lib.aws_ec2.IVpc</code> | *No description.* |
+| <code><a href="#cdk-skylight.compute.IWindowsEKSNodesProps.property.instanceType">instanceType</a></code> | <code>aws-cdk-lib.aws_ec2.InstanceType</code> | The instance to use. |
+| <code><a href="#cdk-skylight.compute.IWindowsEKSNodesProps.property.namespace">namespace</a></code> | <code>string</code> | The SSM namespace to save parameters to. |
 
 ---
 
@@ -1746,7 +1990,7 @@ The Windows EKS Cluster parameters.
 public readonly vpc: IVpc;
 ```
 
-- _Type:_ aws-cdk-lib.aws_ec2.IVpc
+- *Type:* aws-cdk-lib.aws_ec2.IVpc
 
 ---
 
@@ -1756,8 +2000,8 @@ public readonly vpc: IVpc;
 public readonly instanceType: InstanceType;
 ```
 
-- _Type:_ aws-cdk-lib.aws_ec2.InstanceType
-- _Default:_ 'm5.large'.
+- *Type:* aws-cdk-lib.aws_ec2.InstanceType
+- *Default:* 'm5.large'.
 
 The instance to use.
 
@@ -1769,8 +2013,8 @@ The instance to use.
 public readonly namespace: string;
 ```
 
-- _Type:_ string
-- _Default:_ 'cdk-skylight'.
+- *Type:* string
+- *Default:* 'cdk-skylight'.
 
 The SSM namespace to save parameters to.
 
@@ -1782,12 +2026,13 @@ The SSM namespace to save parameters to.
 
 #### Members <a name="Members" id="Members"></a>
 
-| **Name**                                                                                                  | **Description**   |
-| --------------------------------------------------------------------------------------------------------- | ----------------- |
-| <code><a href="#cdk-skylight.authentication.AwsManagedMicrosoftConfigurationStoreType.SSM">SSM</a></code> | _No description._ |
+| **Name** | **Description** |
+| --- | --- |
+| <code><a href="#cdk-skylight.authentication.AwsManagedMicrosoftConfigurationStoreType.SSM">SSM</a></code> | *No description.* |
 
 ---
 
 ##### `SSM` <a name="SSM" id="cdk-skylight.authentication.AwsManagedMicrosoftConfigurationStoreType.SSM"></a>
 
 ---
+
