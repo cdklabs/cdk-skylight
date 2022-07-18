@@ -30,7 +30,7 @@ test('authentication', () => {
   );
   const madwithoutr53 = new skylight.authentication.AwsManagedMicrosoftAd(
     stack,
-    'madwithoutr53',
+    'madWithoutR53',
     {
       vpc: vpc,
       createWorker: false,
@@ -85,6 +85,10 @@ test('authentication', () => {
   mad.createADGroup('Test', 'test2');
   mad.createServiceAccount('test', 'Test2', 'test3');
   expect(mad2).toHaveProperty(
+    'adParameters.namespace',
+    'cdk-skylight/authentication/mad'
+  );
+  expect(madwithoutr53).toHaveProperty(
     'adParameters.namespace',
     'cdk-skylight/authentication/mad'
   );
