@@ -320,11 +320,6 @@ export class AwsManagedMicrosoftAdR53 extends AwsManagedMicrosoftAd {
         });
     }
 
-    new aws_ssm.StringParameter(this, 'mad-directoryID-pointer', {
-      parameterName: `/${this.adParameters.namespace}/${this.adParameters.directoryIDPointer}`,
-      stringValue: this.microsoftAD.ref,
-    });
-
     const sg = new ec2.SecurityGroup(this, 'r53-outbound-resolver-SG', {
       vpc: props.vpc,
     });
