@@ -20,6 +20,7 @@ import {
   aws_ssm,
   CfnOutput,
   Fn,
+  Stack,
 } from 'aws-cdk-lib';
 import { CfnMicrosoftAD } from 'aws-cdk-lib/aws-directoryservice';
 import { SelectedSubnets } from 'aws-cdk-lib/aws-ec2';
@@ -193,7 +194,7 @@ export class AwsManagedMicrosoftAd extends Construct {
     new CfnOutput(this, 'secret-value-hint', {
       value: `aws secretsmanager get-secret-value --secret-id ${
         this.secret.secretArn
-      } --query SecretString --output text --region ${'region'}`, //need to fix the region
+      } --query SecretString --output text --region ${Stack.of(scope).region}`,
     });
 
     this.microsoftAD = new mad.CfnMicrosoftAD(
@@ -211,6 +212,18 @@ export class AwsManagedMicrosoftAd extends Construct {
         },
       },
     );
+
+    new CfnOutput(this, 'mad-dns-ips', {
+      value: `${Fn.join(',', this.microsoftAD.attrDnsIpAddresses)}`,
+    });
+
+    new CfnOutput(this, 'mad-dns-name', {
+      value: `${this.props.domainName}`,
+    });
+
+    new CfnOutput(this, 'mad-directoyID', {
+      value: `${this.microsoftAD.ref}`,
+    });
 
     new aws_ssm.StringParameter(this, 'mad-directoryID-pointer', {
       parameterName: `/${this.adParameters.namespace}/${this.adParameters.directoryIDPointer}`,
