@@ -113,7 +113,7 @@ export class DomainWindowsNode extends Construct {
     this.vpc = props.vpc;
 
     const nodeImage = new ec2.LookupMachineImage({
-      name: props.amiName ?? '*Windows_Server-2022-English-Full*',
+      name: props.amiName ?? '*Windows_Server-2022-English-Full-Base*',
       windows: props.windowsMachine,
     });
 
