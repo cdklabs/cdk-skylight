@@ -104,4 +104,13 @@ test('authentication', () => {
     'microsoftAD.vpcSettings.subnetIds',
     vpcWithCustomSubnets.selectSubnets({ subnetGroupName: 'Data' }).subnetIds,
   );
+  expect(mad).toHaveProperty('domainWindowsNode');
+  expect(mad2).toHaveProperty('domainWindowsNode', undefined);
+  expect(mad).toHaveProperty(
+    'domainWindowsNode.instance.instance.subnetId',
+    vpc.selectSubnets({
+      availabilityZones: [Stack.of(stack).availabilityZones[0]],
+      subnetType: SubnetType.PRIVATE_WITH_NAT,
+    }).subnetIds[0],
+  );
 });

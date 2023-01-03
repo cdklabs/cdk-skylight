@@ -258,6 +258,7 @@ export class AwsManagedMicrosoftAd extends Construct {
       passwordObject: domainPassword,
       vpc: this.props.vpc,
       instanceType: 't3.small',
+      usePrivateSubnet: true,
     });
   }
 
