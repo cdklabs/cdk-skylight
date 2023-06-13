@@ -1,4 +1,4 @@
-const { awscdk } = require('projen');
+import { awscdk } from 'projen';
 
 const project = new awscdk.AwsCdkConstructLibrary({
   author: 'Dudu (David) Twizer',
@@ -6,6 +6,7 @@ const project = new awscdk.AwsCdkConstructLibrary({
   cdkVersion: '2.32.0',
   defaultReleaseBranch: 'main',
   name: 'cdk-skylight',
+  projenrcTs: true,
   repositoryUrl: 'https://github.com/cdklabs/cdk-skylight.git',
   peerDeps: ['constructs', 'aws-cdk-lib'],
   gitignore: ['.DS_Store'],
