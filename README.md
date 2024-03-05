@@ -99,7 +99,7 @@ const ad = new skylight.authentication.AwsManagedMicrosoftAd(
   'AwsManagedMicrosoftAdR53',
   {
     vpc: vpc,
-    edition: 'enterprise', // Optional
+    edition: 'Enterprise', // Optional
     secret: new Secret(stack, 'test-secret'), // Optional
     domainName: 'test-domain', // Optional
     secretName: 'custom-secret-name', // Optional
