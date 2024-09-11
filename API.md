@@ -1138,14 +1138,14 @@ Method to configure persistent storage dependency to the hosts by using Global M
 ##### `addUserData` <a name="addUserData" id="cdk-skylight.compute.WindowsEKSNodes.addUserData"></a>
 
 ```typescript
-public addUserData(commands: string): void
+public addUserData(commands: ...string[]): void
 ```
 
 Method to add userData to the nodes.
 
 ###### `commands`<sup>Required</sup> <a name="commands" id="cdk-skylight.compute.WindowsEKSNodes.addUserData.parameter.commands"></a>
 
-- *Type:* string
+- *Type:* ...string[]
 
 ---
 
@@ -1880,14 +1880,14 @@ Method to configure persistent storage dependency to the hosts by using Global M
 ##### `addUserData` <a name="addUserData" id="cdk-skylight.compute.IRuntimeNodes.addUserData"></a>
 
 ```typescript
-public addUserData(commands: string): void
+public addUserData(commands: ...string[]): void
 ```
 
 Method to add userData to the nodes.
 
 ###### `commands`<sup>Required</sup> <a name="commands" id="cdk-skylight.compute.IRuntimeNodes.addUserData.parameter.commands"></a>
 
-- *Type:* string
+- *Type:* ...string[]
 
 ---
 
