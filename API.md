@@ -136,7 +136,7 @@ public createWorker(domainName: string, domainPassword: ISecret): DomainWindowsN
 
 ---
 
-##### ~~`isConstruct`~~ <a name="isConstruct" id="cdk-skylight.authentication.AwsManagedMicrosoftAd.isConstruct"></a>
+##### `isConstruct` <a name="isConstruct" id="cdk-skylight.authentication.AwsManagedMicrosoftAd.isConstruct"></a>
 
 ```typescript
 import { authentication } from 'cdk-skylight'
@@ -145,6 +145,20 @@ authentication.AwsManagedMicrosoftAd.isConstruct(x: any)
 ```
 
 Checks if `x` is a construct.
+
+Use this method instead of `instanceof` to properly detect `Construct`
+instances, even when the construct library is symlinked.
+
+Explanation: in JavaScript, multiple copies of the `constructs` library on
+disk are seen as independent, completely different libraries. As a
+consequence, the class `Construct` in each copy of the `constructs` library
+is seen as a different class, and an instance of one class will not test as
+`instanceof` the other class. `npm install` will not create installations
+like this, but users may manually symlink construct libraries together or
+use a monorepo tool: in those cases, multiple copies of the `constructs`
+library can be accidentally installed, and `instanceof` will behave
+unpredictably. It is safest to avoid using `instanceof`, and using
+this type-testing method instead.
 
 ###### `x`<sup>Required</sup> <a name="x" id="cdk-skylight.authentication.AwsManagedMicrosoftAd.isConstruct.parameter.x"></a>
 
@@ -364,7 +378,7 @@ public createWorker(domainName: string, domainPassword: ISecret): DomainWindowsN
 
 ---
 
-##### ~~`isConstruct`~~ <a name="isConstruct" id="cdk-skylight.authentication.AwsManagedMicrosoftAdR53.isConstruct"></a>
+##### `isConstruct` <a name="isConstruct" id="cdk-skylight.authentication.AwsManagedMicrosoftAdR53.isConstruct"></a>
 
 ```typescript
 import { authentication } from 'cdk-skylight'
@@ -373,6 +387,20 @@ authentication.AwsManagedMicrosoftAdR53.isConstruct(x: any)
 ```
 
 Checks if `x` is a construct.
+
+Use this method instead of `instanceof` to properly detect `Construct`
+instances, even when the construct library is symlinked.
+
+Explanation: in JavaScript, multiple copies of the `constructs` library on
+disk are seen as independent, completely different libraries. As a
+consequence, the class `Construct` in each copy of the `constructs` library
+is seen as a different class, and an instance of one class will not test as
+`instanceof` the other class. `npm install` will not create installations
+like this, but users may manually symlink construct libraries together or
+use a monorepo tool: in those cases, multiple copies of the `constructs`
+library can be accidentally installed, and `instanceof` will behave
+unpredictably. It is safest to avoid using `instanceof`, and using
+this type-testing method instead.
 
 ###### `x`<sup>Required</sup> <a name="x" id="cdk-skylight.authentication.AwsManagedMicrosoftAdR53.isConstruct.parameter.x"></a>
 
@@ -616,7 +644,7 @@ public startInstance(): void
 
 ---
 
-##### ~~`isConstruct`~~ <a name="isConstruct" id="cdk-skylight.compute.DomainWindowsNode.isConstruct"></a>
+##### `isConstruct` <a name="isConstruct" id="cdk-skylight.compute.DomainWindowsNode.isConstruct"></a>
 
 ```typescript
 import { compute } from 'cdk-skylight'
@@ -625,6 +653,20 @@ compute.DomainWindowsNode.isConstruct(x: any)
 ```
 
 Checks if `x` is a construct.
+
+Use this method instead of `instanceof` to properly detect `Construct`
+instances, even when the construct library is symlinked.
+
+Explanation: in JavaScript, multiple copies of the `constructs` library on
+disk are seen as independent, completely different libraries. As a
+consequence, the class `Construct` in each copy of the `constructs` library
+is seen as a different class, and an instance of one class will not test as
+`instanceof` the other class. `npm install` will not create installations
+like this, but users may manually symlink construct libraries together or
+use a monorepo tool: in those cases, multiple copies of the `constructs`
+library can be accidentally installed, and `instanceof` will behave
+unpredictably. It is safest to avoid using `instanceof`, and using
+this type-testing method instead.
 
 ###### `x`<sup>Required</sup> <a name="x" id="cdk-skylight.compute.DomainWindowsNode.isConstruct.parameter.x"></a>
 
@@ -812,7 +854,7 @@ public createWorker(domainName: string, domainPassword: ISecret): DomainWindowsN
 
 ---
 
-##### ~~`isConstruct`~~ <a name="isConstruct" id="cdk-skylight.storage.FSxWindows.isConstruct"></a>
+##### `isConstruct` <a name="isConstruct" id="cdk-skylight.storage.FSxWindows.isConstruct"></a>
 
 ```typescript
 import { storage } from 'cdk-skylight'
@@ -821,6 +863,20 @@ storage.FSxWindows.isConstruct(x: any)
 ```
 
 Checks if `x` is a construct.
+
+Use this method instead of `instanceof` to properly detect `Construct`
+instances, even when the construct library is symlinked.
+
+Explanation: in JavaScript, multiple copies of the `constructs` library on
+disk are seen as independent, completely different libraries. As a
+consequence, the class `Construct` in each copy of the `constructs` library
+is seen as a different class, and an instance of one class will not test as
+`instanceof` the other class. `npm install` will not create installations
+like this, but users may manually symlink construct libraries together or
+use a monorepo tool: in those cases, multiple copies of the `constructs`
+library can be accidentally installed, and `instanceof` will behave
+unpredictably. It is safest to avoid using `instanceof`, and using
+this type-testing method instead.
 
 ###### `x`<sup>Required</sup> <a name="x" id="cdk-skylight.storage.FSxWindows.isConstruct.parameter.x"></a>
 
@@ -944,7 +1000,7 @@ Returns a string representation of this construct.
 
 ---
 
-##### ~~`isConstruct`~~ <a name="isConstruct" id="cdk-skylight.compute.WindowsEKSCluster.isConstruct"></a>
+##### `isConstruct` <a name="isConstruct" id="cdk-skylight.compute.WindowsEKSCluster.isConstruct"></a>
 
 ```typescript
 import { compute } from 'cdk-skylight'
@@ -953,6 +1009,20 @@ compute.WindowsEKSCluster.isConstruct(x: any)
 ```
 
 Checks if `x` is a construct.
+
+Use this method instead of `instanceof` to properly detect `Construct`
+instances, even when the construct library is symlinked.
+
+Explanation: in JavaScript, multiple copies of the `constructs` library on
+disk are seen as independent, completely different libraries. As a
+consequence, the class `Construct` in each copy of the `constructs` library
+is seen as a different class, and an instance of one class will not test as
+`instanceof` the other class. `npm install` will not create installations
+like this, but users may manually symlink construct libraries together or
+use a monorepo tool: in those cases, multiple copies of the `constructs`
+library can be accidentally installed, and `instanceof` will behave
+unpredictably. It is safest to avoid using `instanceof`, and using
+this type-testing method instead.
 
 ###### `x`<sup>Required</sup> <a name="x" id="cdk-skylight.compute.WindowsEKSCluster.isConstruct.parameter.x"></a>
 
@@ -1205,7 +1275,7 @@ public runPowerShellSSMDocument(name: string, commands: string[]): void
 
 ---
 
-##### ~~`isConstruct`~~ <a name="isConstruct" id="cdk-skylight.compute.WindowsEKSNodes.isConstruct"></a>
+##### `isConstruct` <a name="isConstruct" id="cdk-skylight.compute.WindowsEKSNodes.isConstruct"></a>
 
 ```typescript
 import { compute } from 'cdk-skylight'
@@ -1214,6 +1284,20 @@ compute.WindowsEKSNodes.isConstruct(x: any)
 ```
 
 Checks if `x` is a construct.
+
+Use this method instead of `instanceof` to properly detect `Construct`
+instances, even when the construct library is symlinked.
+
+Explanation: in JavaScript, multiple copies of the `constructs` library on
+disk are seen as independent, completely different libraries. As a
+consequence, the class `Construct` in each copy of the `constructs` library
+is seen as a different class, and an instance of one class will not test as
+`instanceof` the other class. `npm install` will not create installations
+like this, but users may manually symlink construct libraries together or
+use a monorepo tool: in those cases, multiple copies of the `constructs`
+library can be accidentally installed, and `instanceof` will behave
+unpredictably. It is safest to avoid using `instanceof`, and using
+this type-testing method instead.
 
 ###### `x`<sup>Required</sup> <a name="x" id="cdk-skylight.compute.WindowsEKSNodes.isConstruct.parameter.x"></a>
 
