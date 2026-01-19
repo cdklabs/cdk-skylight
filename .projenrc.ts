@@ -1,24 +1,31 @@
-import { awscdk } from 'projen';
+import { CdklabsConstructLibrary, JsiiLanguage } from 'cdklabs-projen-project-types';
 
-const project = new awscdk.AwsCdkConstructLibrary({
+const project = new CdklabsConstructLibrary({
+  name: 'cdk-skylight',
+  private: false,
+  repositoryUrl: 'https://github.com/cdklabs/cdk-skylight.git',
+  projenrcTs: true,
+  defaultReleaseBranch: 'main',
   author: 'Dudu (David) Twizer',
   authorAddress: 'dudut@amazon.com',
+
   cdkVersion: '2.32.0',
-  defaultReleaseBranch: 'main',
-  name: 'cdk-skylight',
-  projenrcTs: true,
-  repositoryUrl: 'https://github.com/cdklabs/cdk-skylight.git',
-  peerDeps: ['constructs', 'aws-cdk-lib'],
-  gitignore: ['.DS_Store'],
-  autoApproveUpgrades: true,
-  autoMerge: true,
-  autoApproveOptions: {
-    allowedUsernames: ['cdklabs-automation'],
-    secret: 'GITHUB_TOKEN',
+  rosettaOptions: {
+    strict: false, // should be true, pls investigate and fix rosetta errors
   },
 
-  releaseToNpm: true,
+  enablePRAutoMerge: true,
+  setNodeEngineVersion: false,
+  peerDeps: ['constructs', 'aws-cdk-lib'],
+  gitignore: ['.DS_Store'],
+
   majorVersion: 1.0,
+  releaseToNpm: true,
+  jsiiTargetLanguages: [JsiiLanguage.PYTHON],
+  publishToPypi: {
+    distName: 'cdk-skylight',
+    module: 'cdk_skylight',
+  },
 
   // publishToNuget: {
   //   dotNetNamespace: 'Cdklabs.Skylight',
@@ -31,11 +38,6 @@ const project = new awscdk.AwsCdkConstructLibrary({
   //   mavenArtifactId: 'cdk-skylight',
   //   mavenGroupId: 'io.github.cdklabs',
   // },
-
-  publishToPypi: {
-    distName: 'cdk-skylight',
-    module: 'cdk_skylight',
-  },
 });
 
 project.synth();
