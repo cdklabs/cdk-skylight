@@ -235,12 +235,14 @@ export class AwsManagedMicrosoftAd extends Construct {
         this.props.domainName,
         this.secret,
       );
-      this.domainWindowsNode.runPSwithDomainAdmin(
-        [
-          'Add-WindowsFeature RSAT-AD-PowerShell',
-          'Stop-Computer -ComputerName localhost',
-        ],
-        'ad-powershell',
+      //this.domainWindowsNode.startInstance();
+      this.runPSwithDomainAdmin(
+        ['Add-WindowsFeature RSAT-AD-PowerShell'],
+        'install-rsat-ad-tools',
+      );
+      this.runPSwithDomainAdmin(
+        ['Start-Sleep -Seconds 600', 'Stop-Computer -ComputerName localhost'],
+        'shutdown',
       );
       this.domainWindowsNode.instance.node.addDependency(this.microsoftAD);
     } else {
@@ -262,20 +264,23 @@ export class AwsManagedMicrosoftAd extends Construct {
     });
   }
 
-  // The function creates a Lambda to Start the Windows Worker, then creates SSM Document and Desired state in State Manager to schedule this document on the Worker.
-  createADGroup(groupName: string, groupDescription: string) {
-    if (this.domainWindowsNode) {
-      this.domainWindowsNode.startInstance();
-      this.domainWindowsNode.runPSwithDomainAdmin(
-        [
-          `New-ADGroup -Name "${groupDescription}" -SamAccountName "${groupName}" -GroupScope DomainLocal`,
-          'Stop-Computer -ComputerName localhost',
-        ],
-        'createAdGroup',
+  public runPSwithDomainAdmin(commands: string[], id: string): void {
+    if (!this.domainWindowsNode) {
+      throw new Error(
+        `Cannot run '${id}': no worker is defined. Set createWorker: true in AwsManagedMicrosoftAdProps.`,
       );
-    } else {
-      console.log("Can't create AD group when no Worker is defined");
     }
+    this.domainWindowsNode.runPSwithDomainAdmin(commands, id);
+  }
+
+  // Experimental
+  createADGroup(groupName: string, groupDescription: string) {
+    this.runPSwithDomainAdmin(
+      [
+        `New-ADGroup -Name "${groupDescription}" -SamAccountName "${groupName}" -GroupScope DomainLocal`,
+      ],
+      `createAdGroup ${groupName}`,
+    );
   }
 
   // Experimental
@@ -284,16 +289,12 @@ export class AwsManagedMicrosoftAd extends Construct {
     servicePrincipalNames: string,
     principalsAllowedToRetrieveManagedPassword: string,
   ) {
-    if (this.domainWindowsNode) {
-      this.domainWindowsNode.runPSwithDomainAdmin(
-        [
-          `New-ADServiceAccount -Name "${adServiceAccountName}" -DnsHostName "${adServiceAccountName}.${this.props.domainName}" -ServicePrincipalNames "${servicePrincipalNames}" -PrincipalsAllowedToRetrieveManagedPassword "${principalsAllowedToRetrieveManagedPassword}"`,
-        ],
-        'createServiceAccount',
-      );
-    } else {
-      console.log("Can't createServiceAccount when no Worker is defined");
-    }
+    this.runPSwithDomainAdmin(
+      [
+        `New-ADServiceAccount -Name "${adServiceAccountName}" -DnsHostName "${adServiceAccountName}.${this.props.domainName}" -ServicePrincipalNames "${servicePrincipalNames}" -PrincipalsAllowedToRetrieveManagedPassword "${principalsAllowedToRetrieveManagedPassword}"`,
+      ],
+      `createServiceAccount ${adServiceAccountName}`,
+    );
   }
 }
 
