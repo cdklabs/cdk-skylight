@@ -203,7 +203,7 @@ export class AwsManagedMicrosoftAd extends Construct {
       {
         password: this.secret
           .secretValueFromJson('Password')
-          .unsafeUnwrap.toString(),
+          .unsafeUnwrap().toString(),
         edition: props.edition,
         name: this.props.domainName,
         vpcSettings: {
