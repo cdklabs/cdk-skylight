@@ -27,6 +27,7 @@ import {
   AwsCustomResourcePolicy,
 } from 'aws-cdk-lib/custom-resources';
 import { Construct } from 'constructs';
+import * as crypto from 'crypto';
 
 /**
  * The properties of an DomainWindowsNodeProps, requires Active Directory parameter to read the Secret to join the domain
@@ -280,27 +281,30 @@ export class DomainWindowsNode extends Construct {
    * The provided psCommands will be stored in C:\Scripts and will be run with scheduled task with Domain Admin rights
    */
   runPSwithDomainAdmin(psCommands: string[], id: string) {
-    var commands = ['$oneTimePS = {'];
-    psCommands.forEach((command: string) => {
-      commands.push(command);
-    });
-    commands.push(
-      '}',
+    // Join commands and encode as base64
+    const scriptContent = psCommands.join('\n');
+    const base64Script = Fn.base64(scriptContent);
+
+    // Sanitize id to only allow safe characters for script filename
+    const scriptContentHash = crypto.createHash('sha256').update(scriptContent).digest('hex').slice(0, 6);
+    const scriptName = id.replace(/[^a-zA-Z0-9-]+/g, '_') + '_' + scriptContentHash;
+
+    const commands = [
       `[string]$SecretAD  = '${this.passwordObject!.secretName}'`,
       '$SecretObj = Get-SECSecretValue -SecretId $SecretAD',
       '[PSCustomObject]$Secret = ($SecretObj.SecretString  | ConvertFrom-Json)',
       '$password   = $Secret.Password | ConvertTo-SecureString -asPlainText -Force',
       "$username   = 'Admin'",
       '$domain_admin_credential = New-Object System.Management.Automation.PSCredential($username,$password)',
-      'New-Item -ItemType Directory -Path c:\\Scripts',
-      '$tempScriptPath = "C:\\Scripts\\$PID.ps1"',
-      '$oneTimePS | set-content $tempScriptPath',
+      'New-Item -ItemType Directory -Path c:\\Scripts -Force',
+      `$tempScriptPath = "C:\\Scripts\\${scriptName}.ps1"`,
+      `[System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String('${base64Script}')) | Set-Content $tempScriptPath`,
       '# Create a scheduled task on startup to execute the mapping',
       '$action = New-ScheduledTaskAction -Execute "Powershell.exe" -Argument $tempScriptPath',
-      '$trigger =  New-ScheduledTaskTrigger -Once -At (get-date).AddSeconds(10); ',
-      '$trigger.EndBoundary = (get-date).AddSeconds(60).ToString("s") ',
-      'Register-ScheduledTask -Force -Action $action -Trigger $trigger -TaskName "Task $PID to run with DomainAdmin" -Description "Workaround to run the code with domain admin" -RunLevel Highest -User $username -Password $Secret.Password',
-    );
+      '$trigger = New-ScheduledTaskTrigger -Once -At (get-date).AddSeconds(10)',
+      '$trigger.EndBoundary = (get-date).AddSeconds(60).ToString("s")',
+      `Register-ScheduledTask -Force -Action $action -Trigger $trigger -TaskName "Task ${id} to run with DomainAdmin" -Description "Workaround to run the code with domain admin" -RunLevel Highest -User $username -Password $Secret.Password`,
+    ];
     new ssm.CfnAssociation(this, id, {
       name: 'AWS-RunPowerShellScript',
       parameters: {
