@@ -2,6 +2,22 @@
 
 # CDK Skylight
 
+> ## This project is deprecated and no longer maintained
+> 
+> CDK Skylight has become less relevant to our customers and is no longer being  
+> actively maintained. As of October 2026, this repository has been **archived**  
+> and is kept available in **read-only** mode for reference only.
+> 
+> -   No further updates, bug fixes, or security patches will be provided.
+>     
+> -   Existing issues and pull requests will not be actioned.
+>     
+> -   The `cdk-skylight` npm package remains published but is deprecated; pin to the  
+>     last released version if you still depend on it, and plan a migration away from it.
+>     
+> 
+> Thank you to everyone who used and contributed to the project over the years.
+
 CDK Skylight is a set of **Level 3 constructs** for the [Microsoft products on AWS](https://aws.amazon.com/windows/) ecosystem (Windows OS, SQL Server, Active Directory, Windows Containers, Amazon FSx for Windows, and so on). **CDK Skylight Constructs are a natural fit for Platform Teams building Platform as a Product.**
 
 A few examples are:
